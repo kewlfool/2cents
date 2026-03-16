@@ -1,5 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const isCi = Boolean(process.env["CI"]);
+
 export default defineConfig({
   fullyParallel: true,
   testDir: "./tests/e2e",
@@ -9,8 +11,10 @@ export default defineConfig({
     trace: "on-first-retry",
   },
   webServer: {
-    command: "npm run dev -- --hostname 127.0.0.1 --port 3000",
-    reuseExistingServer: !process.env["CI"],
+    command: isCi
+      ? "npm run dev -- --webpack --hostname 127.0.0.1 --port 3000"
+      : "npm run dev -- --hostname 127.0.0.1 --port 3000",
+    reuseExistingServer: !isCi,
     timeout: 300_000,
     url: "http://127.0.0.1:3000",
   },
