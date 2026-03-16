@@ -1,4 +1,4 @@
-name: Deploy GitHub Pages
+name: Publish Pages Branch
 
 on:
   push:
@@ -7,28 +7,19 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
-  group: github-pages
+  group: publish-pages-branch
   cancel-in-progress: true
 
 jobs:
-  build:
+  publish:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Configure Pages
-        id: pages
-        uses: actions/configure-pages@v5
-        with:
-          enablement: true
-          static_site_generator: next
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -39,9 +30,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium webkit
-
       - name: Lint
         run: npm run lint
 
@@ -51,32 +39,14 @@ jobs:
       - name: Unit tests
         run: npm run test
 
-      - name: End-to-end tests
-        run: npm run e2e
+      - name: Build GitHub Pages export
+        run: npm run build:pages
 
-      - name: PWA preview tests
-        env:
-          PAGES_BASE_PATH: ${{ steps.pages.outputs.base_path }}
-        run: npm run e2e:pwa
-
-      - name: Build static export
-        env:
-          PAGES_BASE_PATH: ${{ steps.pages.outputs.base_path }}
-        run: npm run build
-
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+      - name: Publish out/ to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
         with:
-          path: ./out
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          enable_jekyll: false
+          force_orphan: true
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ./out

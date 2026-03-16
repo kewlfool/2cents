@@ -1,12 +1,13 @@
 # Production Test Checklist
 
-Use this checklist after GitHub Pages deploys the latest build.
+Use this checklist after GitHub Pages deploys the latest build from the `gh-pages` branch.
 
 ## Deploy
 
 1. Push the current branch to the repository default branch.
 2. Wait for `.github/workflows/deploy-pages.yml` to finish successfully.
-3. Open the Pages URL and confirm the app loads under the repository subpath.
+3. Confirm the workflow updated the `gh-pages` branch.
+4. Open the Pages URL and confirm the app loads under the repository subpath.
 
 ## Installability
 
