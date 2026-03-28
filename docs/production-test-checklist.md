@@ -19,13 +19,12 @@ Use this checklist after GitHub Pages deploys the latest build from the `gh-page
 ## Core product flows
 
 1. Create or edit a manual budget baseline.
-2. Import the budget template CSV and verify the staged categories before save.
-3. Import a statement CSV in the generic template format.
-4. Import a statement CSV in the bank-style format if that matches the real institution export.
-5. Correct at least one category and save an exact merchant rule.
-6. Open monthly review and confirm planned vs actual values update.
-7. Add, edit, ignore, and delete a manual transaction.
-8. Roll back a statement import and confirm the affected transactions disappear.
+2. Import a statement CSV in the generic template format.
+3. Import a statement CSV in the bank-style format if that matches the real institution export.
+4. Correct at least one category and save an exact merchant rule.
+5. Open monthly review and confirm planned vs actual values update.
+6. Add, edit, ignore, and delete a manual transaction.
+7. Roll back a statement import and confirm the affected transactions disappear.
 
 ## Backup and privacy
 

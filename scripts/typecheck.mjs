@@ -3,6 +3,10 @@ import fs from "node:fs";
 import path from "node:path";
 
 const generatedTypesDirectory = path.join(process.cwd(), ".next", "types");
+const typeScriptBuildInfoPath = path.join(
+  process.cwd(),
+  "tsconfig.tsbuildinfo",
+);
 const nextBinaryPath = path.join(
   process.cwd(),
   "node_modules",
@@ -22,6 +26,9 @@ const tscBinaryPath = path.join(
 fs.rmSync(generatedTypesDirectory, {
   force: true,
   recursive: true,
+});
+fs.rmSync(typeScriptBuildInfoPath, {
+  force: true,
 });
 
 const typegenResult = spawnSync(process.execPath, [nextBinaryPath, "typegen"], {

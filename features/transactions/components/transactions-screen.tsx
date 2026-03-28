@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm, type UseFormReturn } from "react-hook-form";
 
 import { PageHeader } from "@/components/layout/page-header";
@@ -16,6 +16,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { List, ListRow } from "@/components/ui/list";
+import { Notice } from "@/components/ui/notice";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useTransactionsWorkspace } from "@/features/transactions/hooks/use-transactions-workspace";
@@ -101,6 +103,19 @@ function getDefaultEditorDate(monthKey: string) {
   return today.startsWith(monthKey) ? today : `${monthKey}-01`;
 }
 
+function isEditableElement(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
+
+  return (
+    target.isContentEditable ||
+    target instanceof HTMLInputElement ||
+    target instanceof HTMLSelectElement ||
+    target instanceof HTMLTextAreaElement
+  );
+}
+
 function formatSignedAmount(
   amount: number,
   currency: string,
@@ -157,13 +172,13 @@ function SummaryCard(props: {
   value: string;
 }) {
   return (
-    <Card>
-      <CardHeader className="space-y-2">
-        <CardDescription>{props.label}</CardDescription>
-        <CardTitle className="text-2xl">{props.value}</CardTitle>
-        <p className="text-muted text-sm leading-6">{props.description}</p>
-      </CardHeader>
-    </Card>
+    <div className="border-line/70 bg-panel/96 space-y-1 rounded-xl border px-4 py-3">
+      <p className="text-muted text-xs font-semibold uppercase tracking-[0.14em]">
+        {props.label}
+      </p>
+      <p className="text-ink text-xl font-semibold tracking-tight">{props.value}</p>
+      <p className="text-muted text-sm leading-5">{props.description}</p>
+    </div>
   );
 }
 
@@ -182,80 +197,81 @@ function TransactionRow(props: {
   );
 
   return (
-    <article
+    <ListRow
+      aria-label={`${props.transaction.merchantRaw} transaction row`}
       className={cn(
-        "border-line/70 rounded-[26px] border p-4 transition",
+        "items-start transition",
         props.isSelected
-          ? "border-accent/30 bg-accent-soft/55"
-          : "bg-panel-strong/25",
+          ? "bg-accent-soft/50"
+          : "bg-transparent hover:bg-panel-strong/18",
       )}
     >
-      <div className="flex gap-3">
-        <div className="pt-1">
-          <input
-            aria-label={`Select ${props.transaction.merchantRaw}`}
-            checked={props.isSelected}
-            className="border-line text-accent focus:ring-accent size-4 rounded border"
-            onChange={(event) => props.onSelectionChange(event.target.checked)}
-            type="checkbox"
-          />
+      <div className="pt-0.5">
+        <input
+          aria-label={`Select ${props.transaction.merchantRaw}`}
+          checked={props.isSelected}
+          className="border-line text-accent focus:ring-accent size-4 rounded border"
+          onChange={(event) => props.onSelectionChange(event.target.checked)}
+          type="checkbox"
+        />
+      </div>
+
+      <div className="grid min-w-0 flex-1 gap-3 xl:grid-cols-[minmax(0,1.7fr)_minmax(0,0.9fr)_minmax(0,1fr)_auto_auto] xl:items-center">
+        <div className="min-w-0 space-y-1.5">
+          <p className="text-ink truncate text-sm font-semibold tracking-tight sm:text-base">
+            {props.transaction.merchantRaw}
+          </p>
+          {props.transaction.notes ? (
+            <p className="text-muted text-sm leading-5">
+              {props.transaction.notes}
+            </p>
+          ) : null}
         </div>
 
-        <div className="min-w-0 flex-1 space-y-3">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-            <div className="min-w-0 space-y-2">
-              <div className="flex flex-wrap items-center gap-2">
-                <p className="text-ink truncate text-base font-semibold tracking-tight sm:text-lg">
-                  {props.transaction.merchantRaw}
-                </p>
-                <Badge variant={categoryPresentation.tone}>
-                  {categoryPresentation.label}
-                </Badge>
-                <Badge variant="outline">
-                  {props.transaction.direction === "income" ? "Income" : "Expense"}
-                </Badge>
-                {props.transaction.ignored ? (
-                  <Badge variant="warning">Ignored</Badge>
-                ) : null}
-                {props.transaction.transferLike ? (
-                  <Badge variant="default">Transfer-like</Badge>
-                ) : null}
-              </div>
+        <div className="text-muted text-sm leading-5">
+          <p>{formatDateLabel(props.transaction.date)}</p>
+          <p>{props.sourceLabel}</p>
+        </div>
 
-              <p className="text-muted text-sm leading-6">
-                {formatDateLabel(props.transaction.date)} · {props.sourceLabel}
-              </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant={categoryPresentation.tone}>
+            {categoryPresentation.label}
+          </Badge>
+          <Badge variant="outline">
+            {props.transaction.direction === "income" ? "Income" : "Expense"}
+          </Badge>
+          {props.transaction.ignored ? (
+            <Badge variant="warning">Ignored</Badge>
+          ) : null}
+          {props.transaction.transferLike ? (
+            <Badge variant="default">Transfer-like</Badge>
+          ) : null}
+        </div>
 
-              {props.transaction.notes ? (
-                <p className="text-muted text-sm leading-6">
-                  {props.transaction.notes}
-                </p>
-              ) : null}
-            </div>
+        <div className="flex items-center gap-3 xl:justify-end">
+          <p
+            className={cn(
+              "text-base font-semibold tracking-tight",
+              props.transaction.direction === "income"
+                ? "text-success"
+                : "text-ink",
+            )}
+          >
+            {formatSignedAmount(
+              props.transaction.amount,
+              props.currency,
+              props.transaction.direction,
+            )}
+          </p>
+        </div>
 
-            <div className="flex flex-col items-start gap-3 lg:items-end">
-              <p
-                className={cn(
-                  "text-lg font-semibold tracking-tight",
-                  props.transaction.direction === "income"
-                    ? "text-success"
-                    : "text-ink",
-                )}
-              >
-                {formatSignedAmount(
-                  props.transaction.amount,
-                  props.currency,
-                  props.transaction.direction,
-                )}
-              </p>
-              <Button onClick={props.onEdit} size="sm" variant="secondary">
-                Edit
-              </Button>
-            </div>
-          </div>
+        <div className="flex items-center justify-between gap-3 xl:justify-end">
+          <Button onClick={props.onEdit} size="sm" variant="secondary">
+            Edit
+          </Button>
         </div>
       </div>
-    </article>
+    </ListRow>
   );
 }
 
@@ -268,10 +284,13 @@ function TransactionEditorCard(props: {
   isSaving: boolean;
   onClose: () => void;
   onDelete: () => Promise<void>;
+  onMerchantInputRefChange?: (element: HTMLInputElement | null) => void;
   onSubmit: () => Promise<void>;
   statementImports: StatementImport[];
   transaction: Transaction | null;
 }) {
+  const { ref: merchantFieldRef, ...merchantFieldProps } =
+    props.form.register("merchantRaw");
   const currentCategory =
     props.transaction?.categoryId
       ? props.allCategories.find(
@@ -343,7 +362,11 @@ function TransactionEditorCard(props: {
               <Input
                 id="transaction-merchant"
                 placeholder="Corner Market"
-                {...props.form.register("merchantRaw")}
+                ref={(element) => {
+                  props.onMerchantInputRefChange?.(element);
+                  merchantFieldRef(element);
+                }}
+                {...merchantFieldProps}
               />
               {props.form.formState.errors.merchantRaw ? (
                 <p className="text-warning text-sm">
@@ -563,6 +586,8 @@ export function TransactionsScreen() {
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isBulkApplying, setIsBulkApplying] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const merchantInputRef = useRef<HTMLInputElement | null>(null);
 
   const transactions = workspace?.transactions ?? emptyTransactions;
   const categories = workspace?.categories ?? emptyCategories;
@@ -656,6 +681,52 @@ export function TransactionsScreen() {
       form.reset(mapTransactionToFormValues(editingTransaction));
     }
   }, [defaultEditorDate, editorState, editingTransaction, form]);
+
+  useEffect(() => {
+    if (!editorState) {
+      return;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      merchantInputRef.current?.focus();
+      merchantInputRef.current?.select();
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [editingTransaction?.id, editorState]);
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.altKey || event.ctrlKey || event.metaKey) {
+        return;
+      }
+
+      if (
+        (event.key === "/" || event.code === "Slash") &&
+        !isEditableElement(event.target)
+      ) {
+        event.preventDefault();
+        searchInputRef.current?.focus();
+        searchInputRef.current?.select();
+        return;
+      }
+
+      if (
+        (event.key.toLowerCase() === "n" || event.code === "KeyN") &&
+        !editorState &&
+        !isEditableElement(event.target)
+      ) {
+        event.preventDefault();
+        setEditorState({
+          mode: "create",
+        });
+        setMessage(null);
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [editorState]);
 
   const filteredTransactions =
     workspace && filters ? filterTransactions(transactions, filters) : [];
@@ -854,7 +925,7 @@ export function TransactionsScreen() {
         title="Transactions"
       />
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <SummaryCard
           description="Rows currently visible after the active filters."
           label="Visible rows"
@@ -878,32 +949,38 @@ export function TransactionsScreen() {
       </section>
 
       {message ? (
-        <div
-          className={
-            message.tone === "error"
-              ? "border-warning/30 text-warning rounded-[28px] border bg-orange-50 px-5 py-4 text-sm leading-6"
-              : "border-success/20 text-success rounded-[28px] border bg-emerald-50 px-5 py-4 text-sm leading-6"
-          }
-        >
+        <Notice tone={message.tone}>
           {message.body}
-        </div>
+        </Notice>
       ) : null}
 
       {bootstrap.errorMessage ? (
-        <div className="border-warning/30 text-warning rounded-[28px] border bg-orange-50 px-5 py-4 text-sm leading-6">
+        <Notice tone="warning">
           {bootstrap.errorMessage}
-        </div>
+        </Notice>
       ) : null}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Ledger filters</CardTitle>
-          <CardDescription>
-            Narrow the ledger by month, category, direction, ignored state, or
-            merchant search before editing or bulk categorizing.
-          </CardDescription>
+      <Card className="xl:sticky xl:top-4 xl:z-10" variant="muted">
+        <CardHeader className="flex flex-col gap-3 border-b border-line/60 sm:flex-row sm:items-end sm:justify-between">
+          <div className="space-y-1.5">
+            <CardTitle>Ledger filters</CardTitle>
+            <CardDescription>
+              Narrow the ledger by month, category, direction, ignored state, or
+              merchant search before editing or bulk categorizing. Press `/` to
+              focus search or `N` to add a manual transaction.
+            </CardDescription>
+          </div>
+          <Button
+            onClick={() =>
+              setFilters(createDefaultTransactionFilters(monthKeys[0] ?? null))
+            }
+            size="sm"
+            variant="secondary"
+          >
+            Reset filters
+          </Button>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 pt-4">
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,1.5fr)_repeat(4,minmax(0,1fr))]">
             <div className="space-y-2">
               <label
@@ -913,6 +990,7 @@ export function TransactionsScreen() {
                 Search merchant or notes
               </label>
               <Input
+                aria-keyshortcuts="/"
                 id="transaction-search"
                 onChange={(event) =>
                   updateFilters({
@@ -920,6 +998,7 @@ export function TransactionsScreen() {
                   })
                 }
                 placeholder="Whole Foods, payroll, correction..."
+                ref={searchInputRef}
                 value={filters.searchQuery}
               />
             </div>
@@ -1023,37 +1102,26 @@ export function TransactionsScreen() {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
-            <label className="border-line/70 bg-panel-strong/30 flex items-center gap-3 rounded-full border px-4 py-2.5 text-sm">
-              <input
-                checked={filters.onlyUncategorized}
-                className="border-line text-accent focus:ring-accent size-4 rounded border"
-                onChange={(event) =>
-                  updateFilters({
-                    onlyUncategorized: event.target.checked,
-                  })
-                }
-                type="checkbox"
-              />
-              Only uncategorized
-            </label>
-            <Button
-              onClick={() =>
-                setFilters(createDefaultTransactionFilters(monthKeys[0] ?? null))
+          <label className="border-line/70 bg-panel flex items-center gap-3 rounded-xl border px-4 py-2.5 text-sm">
+            <input
+              checked={filters.onlyUncategorized}
+              className="border-line text-accent focus:ring-accent size-4 rounded border"
+              onChange={(event) =>
+                updateFilters({
+                  onlyUncategorized: event.target.checked,
+                })
               }
-              size="sm"
-              variant="secondary"
-            >
-              Reset filters
-            </Button>
-          </div>
+              type="checkbox"
+            />
+            Only uncategorized
+          </label>
         </CardContent>
       </Card>
 
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_390px]">
         <div className="grid gap-4">
-          <Card>
-            <CardHeader className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <Card variant="elevated">
+            <CardHeader className="flex flex-col gap-4 border-b border-line/60 lg:flex-row lg:items-start lg:justify-between">
               <div className="space-y-2">
                 <CardTitle>Transaction ledger</CardTitle>
                 <CardDescription>
@@ -1063,6 +1131,7 @@ export function TransactionsScreen() {
               </div>
               <div className="flex flex-wrap gap-3">
                 <Button
+                  aria-keyshortcuts="N"
                   onClick={() => {
                     setEditorState({
                       mode: "create",
@@ -1086,9 +1155,9 @@ export function TransactionsScreen() {
                 </Button>
               </div>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 pt-4">
               {visibleSelectedCount > 0 ? (
-                <div className="border-line/70 bg-panel-strong/35 rounded-[24px] border p-4">
+                <div className="border-line/70 bg-panel-strong/20 rounded-xl border p-4">
                   <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                     <div>
                       <p className="text-ink text-sm font-semibold">
@@ -1138,38 +1207,47 @@ export function TransactionsScreen() {
                   No transactions match the current filters.
                 </div>
               ) : (
-                <div className="space-y-3">
-                  {filteredTransactions.map((transaction) => (
-                    <TransactionRow
-                      categories={workspace.categories}
-                      currency={workspace.currency}
-                      isSelected={selectedTransactionIds.includes(transaction.id)}
-                      key={transaction.id}
-                      onEdit={() => {
-                        setEditorState({
-                          mode: "edit",
-                          transactionId: transaction.id,
-                        });
-                        setMessage(null);
-                      }}
-                      onSelectionChange={(checked) =>
-                        setSelectedTransactionIds((currentSelection) => {
-                          if (checked) {
-                            return [...currentSelection, transaction.id];
-                          }
+                <div className="space-y-2">
+                  <div className="text-muted hidden grid-cols-[minmax(0,1.7fr)_minmax(0,0.9fr)_minmax(0,1fr)_auto_auto] px-4 text-xs font-semibold uppercase tracking-[0.16em] xl:grid">
+                    <span>Merchant</span>
+                    <span>Source</span>
+                    <span>Category</span>
+                    <span className="text-right">Amount</span>
+                    <span className="text-right">Action</span>
+                  </div>
+                  <List>
+                    {filteredTransactions.map((transaction) => (
+                      <TransactionRow
+                        categories={workspace.categories}
+                        currency={workspace.currency}
+                        isSelected={selectedTransactionIds.includes(transaction.id)}
+                        key={transaction.id}
+                        onEdit={() => {
+                          setEditorState({
+                            mode: "edit",
+                            transactionId: transaction.id,
+                          });
+                          setMessage(null);
+                        }}
+                        onSelectionChange={(checked) =>
+                          setSelectedTransactionIds((currentSelection) => {
+                            if (checked) {
+                              return [...currentSelection, transaction.id];
+                            }
 
-                          return currentSelection.filter(
-                            (transactionId) => transactionId !== transaction.id,
-                          );
-                        })
-                      }
-                      sourceLabel={resolveSourceLabel(
-                        transaction,
-                        workspace.statementImports,
-                      )}
-                      transaction={transaction}
-                    />
-                  ))}
+                            return currentSelection.filter(
+                              (transactionId) => transactionId !== transaction.id,
+                            );
+                          })
+                        }
+                        sourceLabel={resolveSourceLabel(
+                          transaction,
+                          workspace.statementImports,
+                        )}
+                        transaction={transaction}
+                      />
+                    ))}
+                  </List>
                 </div>
               )}
             </CardContent>
@@ -1185,6 +1263,9 @@ export function TransactionsScreen() {
           isSaving={isSaving}
           onClose={() => setEditorState(null)}
           onDelete={handleDeleteTransaction}
+          onMerchantInputRefChange={(element) => {
+            merchantInputRef.current = element;
+          }}
           onSubmit={handleSaveTransaction}
           statementImports={workspace.statementImports}
           transaction={editingTransaction}

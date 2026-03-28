@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 
 import { expect, test } from "@playwright/test";
 
-test("budget setup imports a baseline csv into the active plan", async ({
+test("budget setup creates baseline categories in the active plan", async ({
   page,
 }) => {
   await page.goto("/budget-setup");
@@ -11,22 +11,15 @@ test("budget setup imports a baseline csv into the active plan", async ({
     page.getByRole("heading", { name: "Budget setup" }).first(),
   ).toBeVisible();
 
-  await page.locator("#budget-import-file").setInputFiles({
-    buffer: Buffer.from(
-      [
-        "Category,Type,Mode,Planned Amount",
-        "Primary Salary,Income,Fixed,5100",
-        "Emergency Fund,Expense,Variable,120",
-      ].join("\n"),
-    ),
-    mimeType: "text/csv",
-    name: "baseline-import.csv",
-  });
+  await page.getByRole("button", { name: "Add expense" }).click();
+  await page
+    .locator('input[id^="budget-category-name-"]')
+    .last()
+    .fill("Emergency Fund");
+  await page.locator('input[id^="budget-category-amount-"]').last().fill("120");
+  await page.getByRole("button", { name: "Save baseline" }).click();
 
-  await expect(page.getByText("Emergency Fund", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Save imported baseline" }).click();
-
-  await expect(page.getByText(/Budget baseline imported\./)).toBeVisible();
+  await expect(page.getByText(/Budget baseline saved\./)).toBeVisible();
   await expect
     .poll(async () => {
       return page
@@ -61,9 +54,7 @@ test("imports screen rolls back and deletes a saved import record", async ({
     page.getByText(/Imported 1 transactions from rollback-statement\.csv/),
   ).toBeVisible();
 
-  const importRecord = page.locator(
-    'article[aria-label="rollback-statement.csv import record"]',
-  );
+  const importRecord = page.getByLabel("rollback-statement.csv import record");
 
   page.once("dialog", (dialog) => dialog.accept());
   await importRecord.getByRole("button", { name: "Roll back import" }).click();

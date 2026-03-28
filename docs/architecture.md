@@ -45,13 +45,13 @@ Primary entities:
 
 Validation is centralized with Zod in the shared type layer so imports, backups, and service boundaries use the same schema rules.
 
-## Import pipeline
+## Baseline authoring
 
-Budget baseline import:
+Budget baseline setup:
 
-1. Parse CSV or XLSX locally.
-2. Auto-map known headers, then allow manual remapping.
-3. Stage rows with row-level warnings and errors.
+1. Create and edit categories directly in the app.
+2. Keep category kind, mode, and planned amount in a single local form.
+3. Derive expected savings from planned income minus planned expenses.
 4. Save normalized categories into the active baseline.
 5. Archive removed categories instead of deleting them.
 

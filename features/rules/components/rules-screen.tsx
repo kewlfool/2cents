@@ -16,10 +16,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { List, ListRow } from "@/components/ui/list";
+import { Notice } from "@/components/ui/notice";
 import { Select } from "@/components/ui/select";
-import { useRulesWorkspace } from "@/features/rules/hooks/use-rules-workspace";
 import { normalizeMerchantName } from "@/features/import/lib/merchant-normalization";
-import { formatMinorUnits } from "@/lib/money";
+import { useRulesWorkspace } from "@/features/rules/hooks/use-rules-workspace";
 import { previewMerchantRuleApplications } from "@/features/rules/lib/rule-application";
 import {
   createEmptyMerchantRuleFormValues,
@@ -32,6 +33,7 @@ import {
   deleteMerchantRule,
   saveMerchantRule,
 } from "@/features/rules/lib/rules-service";
+import { formatMinorUnits } from "@/lib/money";
 
 type ScreenMessage = {
   body: string;
@@ -52,6 +54,22 @@ function formatDateTime(value: string) {
   }).format(new Date(value));
 }
 
+function SummaryMetric(props: {
+  label: string;
+  value: string | number;
+}) {
+  return (
+    <div className="border-line/70 bg-panel/96 space-y-1 rounded-xl border px-4 py-3">
+      <p className="text-muted text-xs font-semibold uppercase tracking-[0.14em]">
+        {props.label}
+      </p>
+      <p className="text-ink text-xl font-semibold tracking-tight">
+        {props.value}
+      </p>
+    </div>
+  );
+}
+
 export function RulesScreen() {
   const bootstrap = useAppBootstrap();
   const workspace = useRulesWorkspace();
@@ -67,15 +85,20 @@ export function RulesScreen() {
     resolver: zodResolver(merchantRuleFormSchema),
   });
 
+  const defaultCategoryId = workspace?.categories[0]?.id ?? null;
+
+  function resetRuleForm() {
+    setEditingRuleId(null);
+    form.reset(createEmptyMerchantRuleFormValues(defaultCategoryId));
+  }
+
   useEffect(() => {
     if (!workspace || workspace.categories.length === 0) {
       return;
     }
 
     if (!editingRuleId) {
-      form.reset(
-        createEmptyMerchantRuleFormValues(workspace.categories[0]?.id ?? null),
-      );
+      form.reset(createEmptyMerchantRuleFormValues(defaultCategoryId));
       return;
     }
 
@@ -83,9 +106,7 @@ export function RulesScreen() {
 
     if (!activeRule) {
       setEditingRuleId(null);
-      form.reset(
-        createEmptyMerchantRuleFormValues(workspace.categories[0]?.id ?? null),
-      );
+      form.reset(createEmptyMerchantRuleFormValues(defaultCategoryId));
       return;
     }
 
@@ -96,7 +117,7 @@ export function RulesScreen() {
       pattern: activeRule.pattern,
       priority: activeRule.priority,
     });
-  }, [editingRuleId, form, workspace]);
+  }, [defaultCategoryId, editingRuleId, form, workspace]);
 
   if (bootstrap.status === "booting" || !workspace) {
     return (
@@ -150,10 +171,7 @@ export function RulesScreen() {
         ruleId: editingRuleId,
       });
 
-      setEditingRuleId(null);
-      form.reset(
-        createEmptyMerchantRuleFormValues(workspace.categories[0]?.id ?? null),
-      );
+      resetRuleForm();
       setMessage({
         body: `Saved rule ${savedRule.matchType} "${savedRule.pattern}".`,
         tone: "success",
@@ -172,10 +190,6 @@ export function RulesScreen() {
   });
 
   async function handleDeleteRule(ruleId: string, pattern: string) {
-    if (!workspace) {
-      return;
-    }
-
     if (!window.confirm(`Delete the rule "${pattern}"?`)) {
       return;
     }
@@ -187,10 +201,7 @@ export function RulesScreen() {
       await deleteMerchantRule(ruleId);
 
       if (editingRuleId === ruleId) {
-        setEditingRuleId(null);
-        form.reset(
-          createEmptyMerchantRuleFormValues(workspace.categories[0]?.id ?? null),
-        );
+        resetRuleForm();
       }
 
       setMessage({
@@ -249,95 +260,224 @@ export function RulesScreen() {
     <div className="space-y-6">
       <PageHeader
         badge={<Badge variant="accent">Rules live</Badge>}
-        description="Create, test, and tune merchant rules locally. Recategorization stays explicit: only uncategorized transactions are changed, and only after you review the proposed matches."
+        description="Create, test, and apply merchant rules locally. The saved-rule list stays primary, while edits and bulk application stay explicit and reviewable."
         eyebrow="Rules"
         title="Rules"
       />
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Card>
-          <CardHeader className="space-y-2">
-            <CardDescription>Saved rules</CardDescription>
-            <CardTitle className="text-2xl">{workspace.rules.length}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader className="space-y-2">
-            <CardDescription>Uncategorized</CardDescription>
-            <CardTitle className="text-2xl">
-              {uncategorizedTransactions.length}
-            </CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader className="space-y-2">
-            <CardDescription>Preview matches</CardDescription>
-            <CardTitle className="text-2xl">{previewRows.length}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader className="space-y-2">
-            <CardDescription>Highest priority</CardDescription>
-            <CardTitle className="text-2xl">{highestPriority}</CardTitle>
-          </CardHeader>
-        </Card>
+      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <SummaryMetric label="Saved rules" value={workspace.rules.length} />
+        <SummaryMetric
+          label="Uncategorized"
+          value={uncategorizedTransactions.length}
+        />
+        <SummaryMetric label="Preview matches" value={previewRows.length} />
+        <SummaryMetric label="Highest priority" value={highestPriority} />
       </section>
 
       {message ? (
-        <div
-          className={
-            message.tone === "error"
-              ? "border-warning/30 text-warning rounded-[28px] border bg-orange-50 px-5 py-4 text-sm leading-6"
-              : "border-success/20 text-success rounded-[28px] border bg-emerald-50 px-5 py-4 text-sm leading-6"
-          }
-        >
+        <Notice tone={message.tone}>
           {message.body}
-        </div>
+        </Notice>
       ) : null}
 
       {bootstrap.errorMessage ? (
-        <div className="border-warning/30 text-warning rounded-[28px] border bg-orange-50 px-5 py-4 text-sm leading-6">
+        <Notice tone="warning">
           {bootstrap.errorMessage}
-        </div>
+        </Notice>
       ) : null}
 
-      <section className="grid gap-4 xl:grid-cols-[1fr_1.1fr]">
+      <section className="grid gap-4 xl:grid-cols-[1.18fr_0.82fr]">
         <div className="grid gap-4">
+          <Card variant="elevated">
+            <CardHeader className="border-b border-line/60">
+              <CardTitle>Saved rules</CardTitle>
+              <CardDescription>
+                Higher priority wins. Keep patterns narrow unless you have a
+                stable merchant string to broaden safely.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-4">
+              {workspace.rules.length === 0 ? (
+                <div className="border-line/70 bg-panel-strong/25 text-muted rounded-xl border px-4 py-4 text-sm leading-6">
+                  No merchant rules saved yet.
+                </div>
+              ) : (
+                <List>
+                  {workspace.rules.map((rule) => {
+                    const category = workspace.categories.find(
+                      (item) => item.id === rule.categoryId,
+                    );
+
+                    return (
+                      <ListRow
+                        aria-label={`Rule ${rule.pattern}`}
+                        className="items-center gap-3"
+                        key={rule.id}
+                      >
+                        <div className="min-w-0 flex-1 space-y-1.5">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="text-ink truncate text-sm font-semibold tracking-tight">
+                              {rule.pattern}
+                            </p>
+                            <Badge variant="outline">
+                              {category?.name ?? "Missing category"}
+                            </Badge>
+                          </div>
+                          <p className="text-muted text-sm leading-5">
+                            {matchTypeLabels[rule.matchType]} • Priority {rule.priority}
+                            {rule.isCaseSensitive ? " • Case sensitive" : ""}
+                          </p>
+                          <p className="text-muted text-sm leading-5">
+                            Updated {formatDateTime(rule.updatedAt)}
+                          </p>
+                        </div>
+
+                        <div className="flex shrink-0 flex-wrap gap-2">
+                          <Button
+                            onClick={() => {
+                              setEditingRuleId(rule.id);
+                              setMessage(null);
+                            }}
+                            size="sm"
+                            variant="secondary"
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            disabled={deletingRuleId === rule.id}
+                            onClick={() => void handleDeleteRule(rule.id, rule.pattern)}
+                            size="sm"
+                            variant="ghost"
+                          >
+                            {deletingRuleId === rule.id ? "Deleting..." : "Delete"}
+                          </Button>
+                        </div>
+                      </ListRow>
+                    );
+                  })}
+                </List>
+              )}
+            </CardContent>
+          </Card>
+
           <Card>
-            <CardHeader>
+            <CardHeader className="border-b border-line/60">
+              <CardTitle>Apply rules to uncategorized transactions</CardTitle>
+              <CardDescription>
+                Only uncategorized history is touched, and only after you review
+                the proposed matches below.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4 pt-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <Badge variant="accent">{previewRows.length} matches ready</Badge>
+                <Badge variant="outline">
+                  {uncategorizedTransactions.length} uncategorized transactions
+                </Badge>
+              </div>
+
+              {previewRows.length === 0 ? (
+                <div className="border-line/70 bg-panel-strong/25 text-muted rounded-xl border px-4 py-4 text-sm leading-6">
+                  No current rule matches are waiting to be applied.
+                </div>
+              ) : (
+                <>
+                  <div className="border-line/80 overflow-hidden rounded-xl border">
+                    <div className="max-h-[28rem] overflow-auto">
+                      <table className="min-w-full border-collapse text-left text-sm">
+                        <thead className="bg-panel-strong/55 text-muted">
+                          <tr>
+                            <th className="px-4 py-3 font-semibold">Date</th>
+                            <th className="px-4 py-3 font-semibold">Merchant</th>
+                            <th className="px-4 py-3 font-semibold">Amount</th>
+                            <th className="px-4 py-3 font-semibold">Rule</th>
+                            <th className="px-4 py-3 font-semibold">Category</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-line/70 bg-panel divide-y">
+                          {previewRows.map((row) => (
+                            <tr key={row.transactionId}>
+                              <td className="text-muted px-4 py-3 align-top">
+                                {row.date}
+                              </td>
+                              <td className="px-4 py-3 align-top">
+                                <div className="space-y-1">
+                                  <p className="text-ink font-medium">
+                                    {row.merchantRaw}
+                                  </p>
+                                  <p className="text-muted text-xs uppercase tracking-[0.18em]">
+                                    {row.merchantNormalized}
+                                  </p>
+                                </div>
+                              </td>
+                              <td className="text-muted px-4 py-3 align-top">
+                                {formatMinorUnits(row.amount)}
+                              </td>
+                              <td className="px-4 py-3 align-top">
+                                <Badge variant="outline">{row.ruleLabel}</Badge>
+                              </td>
+                              <td className="text-muted px-4 py-3 align-top">
+                                {row.categoryName}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <Button
+                    disabled={isApplying}
+                    onClick={() => void handleApplyPreview()}
+                    variant="primary"
+                  >
+                    {isApplying
+                      ? "Applying matches..."
+                      : `Apply ${previewRows.length} matches`}
+                  </Button>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid gap-4 xl:sticky xl:top-6 xl:self-start">
+          <Card variant="muted">
+            <CardHeader className="border-b border-line/60">
               <CardTitle>
                 {editingRuleId ? "Edit merchant rule" : "Create merchant rule"}
               </CardTitle>
               <CardDescription>
-                Use exact matching for safe corrections first, then broaden to
-                contains, starts with, or regex only when the pattern is stable.
+                Start with exact corrections first. Widen a pattern only when
+                the merchant string is demonstrably stable.
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-4">
               <form
                 className="space-y-4"
                 onSubmit={(event) => void handleSaveRule(event)}
               >
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2 md:col-span-2">
-                    <label
-                      className="text-ink block text-sm font-semibold"
-                      htmlFor="rule-pattern"
-                    >
-                      Pattern
-                    </label>
-                    <Input
-                      id="rule-pattern"
-                      placeholder="WHOLE FOODS"
-                      {...form.register("pattern")}
-                    />
-                    {form.formState.errors.pattern ? (
-                      <p className="text-warning text-sm">
-                        {form.formState.errors.pattern.message}
-                      </p>
-                    ) : null}
-                  </div>
+                <div className="space-y-2">
+                  <label
+                    className="text-ink block text-sm font-semibold"
+                    htmlFor="rule-pattern"
+                  >
+                    Pattern
+                  </label>
+                  <Input
+                    id="rule-pattern"
+                    placeholder="WHOLE FOODS"
+                    {...form.register("pattern")}
+                  />
+                  {form.formState.errors.pattern ? (
+                    <p className="text-warning text-sm">
+                      {form.formState.errors.pattern.message}
+                    </p>
+                  ) : null}
+                </div>
 
+                <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <label
                       className="text-ink block text-sm font-semibold"
@@ -391,7 +531,7 @@ export function RulesScreen() {
                     ) : null}
                   </div>
 
-                  <label className="border-line/70 bg-panel-strong/35 flex items-center gap-3 rounded-[24px] border px-4 py-3 text-sm leading-6">
+                  <label className="border-line/70 bg-panel flex items-center gap-3 rounded-xl border px-4 py-3 text-sm leading-6">
                     <input
                       className="accent-accent size-4"
                       type="checkbox"
@@ -411,14 +551,7 @@ export function RulesScreen() {
                   </Button>
                   <Button
                     disabled={isSaving}
-                    onClick={() => {
-                      setEditingRuleId(null);
-                      form.reset(
-                        createEmptyMerchantRuleFormValues(
-                          workspace.categories[0]?.id ?? null,
-                        ),
-                      );
-                    }}
+                    onClick={resetRuleForm}
                     variant="secondary"
                   >
                     Reset form
@@ -429,14 +562,14 @@ export function RulesScreen() {
           </Card>
 
           <Card>
-            <CardHeader>
+            <CardHeader className="border-b border-line/60">
               <CardTitle>Rule tester</CardTitle>
               <CardDescription>
-                Test a merchant string against the saved rules before applying
-                them to uncategorized transactions.
+                Test a merchant string against the current saved rules before
+                applying anything to history.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 pt-4">
               <div className="space-y-2">
                 <label
                   className="text-ink block text-sm font-semibold"
@@ -453,191 +586,46 @@ export function RulesScreen() {
               </div>
 
               {sampleMerchant ? (
-                <div className="space-y-3">
-                  <div className="border-line/70 bg-panel-strong/35 rounded-2xl border px-4 py-3">
-                    <p className="text-muted text-sm">Normalized merchant</p>
-                    <p className="text-ink mt-1 font-semibold">
+                <List>
+                  <ListRow className="flex-col gap-1">
+                    <p className="text-muted text-xs font-semibold uppercase tracking-[0.14em]">
+                      Normalized merchant
+                    </p>
+                    <p className="text-ink text-sm font-semibold">
                       {normalizedSampleMerchant}
                     </p>
-                  </div>
-                  {matchedSampleRule && matchedSampleCategory ? (
-                    <div className="border-line/70 bg-panel-strong/35 rounded-2xl border px-4 py-3">
-                      <p className="text-muted text-sm">Matched rule</p>
-                      <p className="text-ink mt-1 font-semibold">
-                        {matchTypeLabels[matchedSampleRule.matchType]}{" "}
-                        {matchedSampleRule.pattern}
+                  </ListRow>
+                  <ListRow className="flex-col gap-1">
+                    <p className="text-muted text-xs font-semibold uppercase tracking-[0.14em]">
+                      Match result
+                    </p>
+                    {matchedSampleRule && matchedSampleCategory ? (
+                      <>
+                        <p className="text-ink text-sm font-semibold">
+                          {matchTypeLabels[matchedSampleRule.matchType]}{" "}
+                          {matchedSampleRule.pattern}
+                        </p>
+                        <p className="text-muted text-sm leading-5">
+                          Category: {matchedSampleCategory.name} • Priority{" "}
+                          {matchedSampleRule.priority}
+                        </p>
+                      </>
+                    ) : (
+                      <p className="text-muted text-sm leading-5">
+                        No saved rule matches this merchant yet.
                       </p>
-                      <p className="text-muted mt-1 text-sm leading-6">
-                        Category: {matchedSampleCategory.name} • Priority{" "}
-                        {matchedSampleRule.priority}
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="border-line/70 bg-panel-strong/35 text-muted rounded-2xl border px-4 py-3 text-sm leading-6">
-                      No saved rule matches this merchant yet.
-                    </div>
-                  )}
-                </div>
+                    )}
+                  </ListRow>
+                </List>
               ) : (
-                <div className="border-line/70 bg-panel-strong/35 text-muted rounded-2xl border px-4 py-3 text-sm leading-6">
+                <div className="border-line/70 bg-panel-strong/25 text-muted rounded-xl border px-4 py-4 text-sm leading-6">
                   Enter a merchant string to test it against the current rules.
                 </div>
               )}
             </CardContent>
           </Card>
         </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Saved rules</CardTitle>
-            <CardDescription>
-              Higher priority wins. Edit patterns carefully because these rules
-              can be re-applied to uncategorized history.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {workspace.rules.length === 0 ? (
-              <div className="border-line/70 bg-panel-strong/35 text-muted rounded-[24px] border px-4 py-4 text-sm leading-6">
-                No merchant rules saved yet.
-              </div>
-            ) : (
-              workspace.rules.map((rule) => {
-                const category = workspace.categories.find(
-                  (item) => item.id === rule.categoryId,
-                );
-
-                return (
-                  <div
-                    className="border-line/70 bg-panel-strong/35 space-y-3 rounded-[24px] border p-4"
-                    key={rule.id}
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="space-y-1">
-                        <p className="text-ink font-semibold tracking-tight">
-                          {rule.pattern}
-                        </p>
-                        <p className="text-muted text-sm leading-6">
-                          {matchTypeLabels[rule.matchType]} • Priority{" "}
-                          {rule.priority}
-                          {rule.isCaseSensitive ? " • Case sensitive" : ""}
-                        </p>
-                      </div>
-                      <Badge variant="outline">{category?.name ?? "Missing category"}</Badge>
-                    </div>
-
-                    <p className="text-muted text-sm leading-6">
-                      Updated {formatDateTime(rule.updatedAt)}
-                    </p>
-
-                    <div className="flex flex-wrap gap-3">
-                      <Button
-                        onClick={() => {
-                          setEditingRuleId(rule.id);
-                          setMessage(null);
-                        }}
-                        size="sm"
-                        variant="secondary"
-                      >
-                        Edit rule
-                      </Button>
-                      <Button
-                        disabled={deletingRuleId === rule.id}
-                        onClick={() => void handleDeleteRule(rule.id, rule.pattern)}
-                        size="sm"
-                        variant="ghost"
-                      >
-                        {deletingRuleId === rule.id
-                          ? "Deleting..."
-                          : "Delete rule"}
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </CardContent>
-        </Card>
       </section>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Apply rules to uncategorized transactions</CardTitle>
-          <CardDescription>
-            This preview only touches transactions that are currently
-            uncategorized. Nothing changes until you apply the reviewed matches.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-wrap items-center gap-3">
-            <Badge variant="accent">{previewRows.length} matches ready</Badge>
-            <Badge variant="outline">
-              {uncategorizedTransactions.length} uncategorized transactions
-            </Badge>
-          </div>
-
-          {previewRows.length === 0 ? (
-            <div className="border-line/70 bg-panel-strong/35 text-muted rounded-[24px] border px-4 py-4 text-sm leading-6">
-              No current rule matches are waiting to be applied.
-            </div>
-          ) : (
-            <>
-              <div className="border-line/80 overflow-hidden rounded-[24px] border">
-                <div className="max-h-[28rem] overflow-auto">
-                  <table className="min-w-full border-collapse text-left text-sm">
-                    <thead className="bg-panel-strong/55 text-muted">
-                      <tr>
-                        <th className="px-4 py-3 font-semibold">Date</th>
-                        <th className="px-4 py-3 font-semibold">Merchant</th>
-                        <th className="px-4 py-3 font-semibold">Amount</th>
-                        <th className="px-4 py-3 font-semibold">Rule</th>
-                        <th className="px-4 py-3 font-semibold">Category</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-line/70 bg-panel divide-y">
-                      {previewRows.map((row) => (
-                        <tr key={row.transactionId}>
-                          <td className="text-muted px-4 py-3 align-top">
-                            {row.date}
-                          </td>
-                          <td className="px-4 py-3 align-top">
-                            <div className="space-y-1">
-                              <p className="text-ink font-medium">
-                                {row.merchantRaw}
-                              </p>
-                              <p className="text-muted text-xs uppercase tracking-[0.18em]">
-                                {row.merchantNormalized}
-                              </p>
-                            </div>
-                          </td>
-                          <td className="text-muted px-4 py-3 align-top">
-                            {formatMinorUnits(row.amount)}
-                          </td>
-                          <td className="px-4 py-3 align-top">
-                            <Badge variant="outline">{row.ruleLabel}</Badge>
-                          </td>
-                          <td className="text-muted px-4 py-3 align-top">
-                            {row.categoryName}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              <Button
-                disabled={isApplying}
-                onClick={() => void handleApplyPreview()}
-                variant="primary"
-              >
-                {isApplying
-                  ? "Applying matches..."
-                  : `Apply ${previewRows.length} matches`}
-              </Button>
-            </>
-          )}
-        </CardContent>
-      </Card>
     </div>
   );
 }

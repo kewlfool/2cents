@@ -50,7 +50,9 @@ test("imports screen stages and saves a statement csv", async ({ page }) => {
   });
 
   await expect(page.getByText("Ready to import")).toBeVisible();
-  await expect(page.getByText("Whole Foods Market", { exact: true })).toBeVisible();
+  await expect(
+    page.getByLabel("Staged import row 2 for Whole Foods Market"),
+  ).toBeVisible();
   await page.getByRole("button", { name: "Save import" }).click();
 
   await expect(
@@ -79,9 +81,7 @@ test("transactions screen supports manual correction workflows", async ({
   await expect(page.getByText(/Saved transaction for Cash Grocer\./)).toBeVisible();
 
   await page.getByLabel("Search merchant or notes").fill("Cash Grocer");
-  const cashGrocerRow = page.locator("article").filter({
-    hasText: "Cash Grocer",
-  });
+  const cashGrocerRow = page.getByLabel("Cash Grocer transaction row");
 
   await expect(cashGrocerRow).toHaveCount(1);
   await cashGrocerRow.getByLabel("Select Cash Grocer").check();
@@ -108,10 +108,31 @@ test("transactions screen supports manual correction workflows", async ({
     page.getByText(/Deleted transaction for Cash Grocer\./),
   ).toBeVisible();
   await expect(
-    page.locator("article").filter({
-      hasText: "Cash Grocer",
-    }),
+    page.getByLabel("Cash Grocer transaction row"),
   ).toHaveCount(0);
+});
+
+test("transactions screen supports keyboard shortcuts for search and create", async ({
+  browserName,
+  page,
+}) => {
+  test.skip(
+    browserName !== "chromium",
+    "Keyboard shortcut coverage is desktop-focused.",
+  );
+
+  await page.goto("/transactions");
+
+  await page.getByRole("heading", { name: "Transactions" }).click();
+  await page.keyboard.press("/");
+  await expect(page.getByLabel("Search merchant or notes")).toBeFocused();
+
+  await page.getByRole("heading", { name: "Transactions" }).click();
+  await page.keyboard.press("n");
+
+  await expect(
+    page.getByRole("textbox", { exact: true, name: "Merchant" }),
+  ).toBeFocused();
 });
 
 test("settings screen saves local preferences and updates month labels", async ({

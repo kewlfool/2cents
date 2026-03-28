@@ -13,6 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { List, ListRow } from "@/components/ui/list";
 import { Select } from "@/components/ui/select";
 import { useMonthlyReviewWorkspace } from "@/features/review/hooks/use-monthly-review-workspace";
 import { buildMonthlyReviewDetail } from "@/features/review/lib/monthly-review";
@@ -28,6 +29,32 @@ function formatVariance(value: number, currency: string) {
   }
 
   return `${value > 0 ? "+" : "-"}${absoluteValue}`;
+}
+
+function SummaryMetric(props: {
+  label: string;
+  tone?: "default" | "success" | "warning";
+  value: string | number;
+}) {
+  return (
+    <div className="border-line/70 bg-panel/96 space-y-1 rounded-xl border px-4 py-3">
+      <p className="text-muted text-xs font-semibold uppercase tracking-[0.14em]">
+        {props.label}
+      </p>
+      <p
+        className={cn(
+          "text-xl font-semibold tracking-tight",
+          props.tone === "success"
+            ? "text-success"
+            : props.tone === "warning"
+              ? "text-warning"
+              : "text-ink",
+        )}
+      >
+        {props.value}
+      </p>
+    </div>
+  );
 }
 
 export function MonthlyReviewScreen() {
@@ -119,8 +146,8 @@ export function MonthlyReviewScreen() {
       />
 
       <section className="grid gap-4 print:grid-cols-[1fr_auto] md:grid-cols-[1fr_auto]">
-        <Card>
-          <CardContent className="flex flex-col gap-4 p-6 sm:flex-row sm:items-end sm:justify-between">
+        <Card variant="muted">
+          <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-end sm:justify-between">
             <div className="space-y-2">
               <label
                 className="text-ink block text-sm font-semibold"
@@ -164,61 +191,43 @@ export function MonthlyReviewScreen() {
         </Card>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Card>
-          <CardHeader className="space-y-2">
-            <CardDescription>Planned savings</CardDescription>
-            <CardTitle className="text-2xl">
-              {formatMinorUnits(selectedSnapshot.plannedSavings, workspace.currency)}
-            </CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader className="space-y-2">
-            <CardDescription>Actual savings</CardDescription>
-            <CardTitle className="text-2xl">
-              {formatMinorUnits(selectedSnapshot.actualSavings, workspace.currency)}
-            </CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader className="space-y-2">
-            <CardDescription>Savings variance</CardDescription>
-            <CardTitle
-              className={cn(
-                "text-2xl",
-                selectedSnapshot.variance > 0
-                  ? "text-success"
-                  : selectedSnapshot.variance < 0
-                    ? "text-warning"
-                    : "text-ink",
-              )}
-            >
-              {formatVariance(selectedSnapshot.variance, workspace.currency)}
-            </CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader className="space-y-2">
-            <CardDescription>Uncategorized</CardDescription>
-            <CardTitle className="text-2xl">
-              {reviewDetail.uncategorizedTransactions.length}
-            </CardTitle>
-          </CardHeader>
-        </Card>
+      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <SummaryMetric
+          label="Planned savings"
+          value={formatMinorUnits(selectedSnapshot.plannedSavings, workspace.currency)}
+        />
+        <SummaryMetric
+          label="Actual savings"
+          value={formatMinorUnits(selectedSnapshot.actualSavings, workspace.currency)}
+        />
+        <SummaryMetric
+          label="Savings variance"
+          tone={
+            selectedSnapshot.variance > 0
+              ? "success"
+              : selectedSnapshot.variance < 0
+                ? "warning"
+                : "default"
+          }
+          value={formatVariance(selectedSnapshot.variance, workspace.currency)}
+        />
+        <SummaryMetric
+          label="Uncategorized"
+          value={reviewDetail.uncategorizedTransactions.length}
+        />
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[1.4fr_0.9fr]">
-        <Card>
-          <CardHeader>
+        <Card variant="elevated">
+          <CardHeader className="border-b border-line/60">
             <CardTitle>Category review</CardTitle>
             <CardDescription>
               Expand a category to inspect the exact transactions contributing to
               the month&apos;s actual total.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="border-line/80 overflow-hidden rounded-[24px] border">
+          <CardContent className="space-y-4 pt-4">
+            <div className="border-line/80 overflow-hidden rounded-xl border">
               <div className="overflow-x-auto">
                 <table className="min-w-full border-collapse text-left text-sm">
                   <thead className="bg-panel-strong/55 text-muted">
@@ -260,7 +269,7 @@ export function MonthlyReviewScreen() {
         </Card>
 
         <div className="grid gap-4">
-          <Card>
+          <Card variant="muted">
             <CardHeader>
               <CardTitle>Top overspend areas</CardTitle>
               <CardDescription>
@@ -270,28 +279,25 @@ export function MonthlyReviewScreen() {
             </CardHeader>
             <CardContent className="space-y-3">
               {reviewDetail.overBudgetCategories.length === 0 ? (
-                <div className="border-line/70 bg-panel-strong/35 text-muted rounded-[24px] border px-4 py-4 text-sm leading-6">
+                <div className="border-line/70 bg-panel text-muted rounded-xl border px-4 py-4 text-sm leading-6">
                   No expense categories were over budget this month.
                 </div>
               ) : (
                 <>
-                  <div className="border-line/70 bg-panel-strong/35 rounded-[24px] border px-4 py-4">
+                  <div className="border-line/70 bg-panel rounded-xl border px-4 py-4">
                     <p className="text-muted text-sm">Total overspend</p>
                     <p className="text-warning mt-2 text-2xl font-semibold tracking-tight">
                       {formatMinorUnits(totalOverBudgetAmount, workspace.currency)}
                     </p>
                   </div>
-                  {reviewDetail.overBudgetCategories.map((row) => (
-                    <div
-                      className="border-line/70 bg-panel-strong/35 rounded-[24px] border px-4 py-4"
-                      key={row.categoryId}
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div>
+                  <List>
+                    {reviewDetail.overBudgetCategories.map((row) => (
+                      <ListRow className="gap-3" key={row.categoryId}>
+                        <div className="min-w-0 flex-1">
                           <p className="text-ink font-semibold tracking-tight">
                             {row.categoryName}
                           </p>
-                          <p className="text-muted mt-1 text-sm leading-6">
+                          <p className="text-muted mt-1 text-sm leading-5">
                             Planned {formatMinorUnits(row.plannedAmount, workspace.currency)} • Actual{" "}
                             {formatMinorUnits(row.actualAmount, workspace.currency)}
                           </p>
@@ -299,15 +305,15 @@ export function MonthlyReviewScreen() {
                         <Badge variant="warning">
                           {formatVariance(row.variance, workspace.currency)}
                         </Badge>
-                      </div>
-                    </div>
-                  ))}
+                      </ListRow>
+                    ))}
+                  </List>
                 </>
               )}
             </CardContent>
           </Card>
 
-          <Card>
+          <Card variant="muted">
             <CardHeader>
               <CardTitle>Top unusual merchants</CardTitle>
               <CardDescription>
@@ -317,25 +323,25 @@ export function MonthlyReviewScreen() {
             </CardHeader>
             <CardContent className="space-y-3">
               {reviewDetail.unusualMerchants.length === 0 ? (
-                <div className="border-line/70 bg-panel-strong/35 text-muted rounded-[24px] border px-4 py-4 text-sm leading-6">
+                <div className="border-line/70 bg-panel text-muted rounded-xl border px-4 py-4 text-sm leading-6">
                   Not enough history to surface unusual merchant activity for
                   this month yet.
                 </div>
               ) : (
-                reviewDetail.unusualMerchants.map((merchant) => (
-                  <div
-                    className="border-line/70 bg-panel-strong/35 rounded-[24px] border px-4 py-4"
-                    key={`${merchant.monthKey}-${merchant.merchantNormalized}`}
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
+                <List>
+                  {reviewDetail.unusualMerchants.map((merchant) => (
+                    <ListRow
+                      className="gap-3"
+                      key={`${merchant.monthKey}-${merchant.merchantNormalized}`}
+                    >
+                      <div className="min-w-0 flex-1">
                         <p className="text-ink font-semibold tracking-tight">
                           {merchant.merchantRawLabel}
                         </p>
-                        <p className="text-muted mt-1 text-sm leading-6">
+                        <p className="text-muted mt-1 text-sm leading-5">
                           {merchant.reason}
                         </p>
-                        <p className="text-muted mt-1 text-sm leading-6">
+                        <p className="text-muted mt-1 text-sm leading-5">
                           Current {formatMinorUnits(merchant.currentAmount, workspace.currency)}
                           {merchant.averagePriorAmount > 0
                             ? ` • Recent avg ${formatMinorUnits(merchant.averagePriorAmount, workspace.currency)}`
@@ -349,14 +355,14 @@ export function MonthlyReviewScreen() {
                       >
                         {formatVariance(merchant.varianceAmount, workspace.currency)}
                       </Badge>
-                    </div>
-                  </div>
-                ))
+                    </ListRow>
+                  ))}
+                </List>
               )}
             </CardContent>
           </Card>
 
-          <Card>
+          <Card variant="muted">
             <CardHeader>
               <CardTitle>Uncategorized this month</CardTitle>
               <CardDescription>
@@ -366,30 +372,27 @@ export function MonthlyReviewScreen() {
             </CardHeader>
             <CardContent className="space-y-3">
               {reviewDetail.uncategorizedTransactions.length === 0 ? (
-                <div className="border-line/70 bg-panel-strong/35 text-muted rounded-[24px] border px-4 py-4 text-sm leading-6">
+                <div className="border-line/70 bg-panel text-muted rounded-xl border px-4 py-4 text-sm leading-6">
                   No uncategorized transactions remain in this month.
                 </div>
               ) : (
-                reviewDetail.uncategorizedTransactions.map((transaction) => (
-                  <div
-                    className="border-line/70 bg-panel-strong/35 rounded-[24px] border px-4 py-4"
-                    key={transaction.id}
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
+                <List>
+                  {reviewDetail.uncategorizedTransactions.map((transaction) => (
+                    <ListRow className="gap-3" key={transaction.id}>
+                      <div className="min-w-0 flex-1">
                         <p className="text-ink font-semibold tracking-tight">
                           {transaction.merchantRaw}
                         </p>
-                        <p className="text-muted mt-1 text-sm leading-6">
+                        <p className="text-muted mt-1 text-sm leading-5">
                           {transaction.date}
                         </p>
                       </div>
                       <Badge variant="outline">
                         {formatMinorUnits(transaction.amount, workspace.currency)}
                       </Badge>
-                    </div>
-                  </div>
-                ))
+                    </ListRow>
+                  ))}
+                </List>
               )}
             </CardContent>
           </Card>
@@ -472,35 +475,30 @@ function FragmentRow({
       </tr>
       {isExpanded ? (
         <tr className="print:table-row">
-          <td className="bg-panel-strong/25 px-4 py-4" colSpan={5}>
+          <td className="bg-panel-strong/20 px-4 py-4" colSpan={5}>
             {transactions.length === 0 ? (
-              <div className="text-muted rounded-[20px] bg-white/35 px-4 py-3 text-sm leading-6">
+              <div className="text-muted rounded-xl bg-white/35 px-4 py-3 text-sm leading-6">
                 No transactions landed in this category for the selected month.
               </div>
             ) : (
-              <div className="space-y-3">
+              <List className="rounded-xl">
                 {transactions.map((transaction) => (
-                  <div
-                    className="border-line/70 bg-panel rounded-[20px] border px-4 py-3"
-                    key={transaction.id}
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <p className="text-ink font-semibold tracking-tight">
-                          {transaction.merchantRaw}
-                        </p>
-                        <p className="text-muted mt-1 text-sm leading-6">
-                          {transaction.date}
-                          {transaction.notes ? ` • ${transaction.notes}` : ""}
-                        </p>
-                      </div>
-                      <Badge variant="outline">
-                        {formatMinorUnits(transaction.amount, currency)}
-                      </Badge>
+                  <ListRow className="gap-3" key={transaction.id}>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-ink font-semibold tracking-tight">
+                        {transaction.merchantRaw}
+                      </p>
+                      <p className="text-muted mt-1 text-sm leading-5">
+                        {transaction.date}
+                        {transaction.notes ? ` • ${transaction.notes}` : ""}
+                      </p>
                     </div>
-                  </div>
+                    <Badge variant="outline">
+                      {formatMinorUnits(transaction.amount, currency)}
+                    </Badge>
+                  </ListRow>
                 ))}
-              </div>
+              </List>
             )}
           </td>
         </tr>

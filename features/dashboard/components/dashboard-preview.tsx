@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import type { ReactElement } from "react";
 
 import { PageHeader } from "@/components/layout/page-header";
 import { useAppBootstrap } from "@/components/providers/app-bootstrap-provider";
@@ -13,9 +14,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { List, ListRow } from "@/components/ui/list";
+import { Notice } from "@/components/ui/notice";
 import { useDashboardSummary } from "@/features/dashboard/hooks/use-dashboard-summary";
 import { formatMonthKeyLabel } from "@/lib/date";
 import { formatMinorUnits } from "@/lib/money";
+import { cn } from "@/lib/utils";
 
 function formatVariance(value: number, currency: string) {
   const absoluteValue = formatMinorUnits(Math.abs(value), currency);
@@ -38,32 +42,58 @@ function getImportBadgeVariant(status: string) {
   }
 }
 
-function SummaryCard(props: {
-  description: string;
+function SummaryMetric(props: {
+  caption: string;
   label: string;
   tone?: "default" | "negative" | "positive";
   value: string;
 }) {
   return (
-    <Card>
-      <CardHeader className="space-y-2">
-        <CardDescription>{props.label}</CardDescription>
-        <CardTitle
-          className={
-            props.tone === "positive"
-              ? "text-success text-2xl"
-              : props.tone === "negative"
-                ? "text-warning text-2xl"
-                : "text-2xl"
-          }
-        >
-          {props.value}
-        </CardTitle>
-        <p className="text-muted text-sm leading-6">{props.description}</p>
-      </CardHeader>
-    </Card>
+    <div className="border-line/70 bg-panel/96 space-y-1 rounded-xl border px-4 py-3">
+      <p className="text-muted text-xs font-semibold uppercase tracking-[0.14em]">
+        {props.label}
+      </p>
+      <p
+        className={cn(
+          "text-xl font-semibold tracking-tight",
+          props.tone === "positive"
+            ? "text-success"
+            : props.tone === "negative"
+              ? "text-warning"
+              : "text-ink",
+        )}
+      >
+        {props.value}
+      </p>
+      <p className="text-muted text-sm leading-5">{props.caption}</p>
+    </div>
   );
 }
+
+function QuickActionLink(props: {
+  href: string;
+  label: string;
+  tone?: "primary" | "secondary";
+}) {
+  return (
+    <Link
+      className={buttonVariants({
+        variant: props.tone === "primary" ? "primary" : "secondary",
+      })}
+      href={props.href}
+    >
+      {props.label}
+    </Link>
+  );
+}
+
+type AttentionRow = {
+  actionHref: string;
+  actionLabel: string;
+  badge: ReactElement;
+  body: string;
+  title: string;
+};
 
 export function DashboardPreview() {
   const bootstrap = useAppBootstrap();
@@ -97,18 +127,48 @@ export function DashboardPreview() {
     );
   }
 
+  const attentionRows = [
+    summary.uncategorizedCount > 0
+      ? {
+          actionHref: "/transactions",
+          actionLabel: "Review transactions",
+          badge: (
+            <Badge variant="warning">
+              {summary.uncategorizedCount} uncategorized
+            </Badge>
+          ),
+          body: "Transactions still need a category before the month closes cleanly.",
+          title: "Finish categorizing imported activity",
+        }
+      : null,
+    ...summary.overBudgetCategories.map((category) => ({
+      actionHref: "/monthly-review",
+      actionLabel: "Open monthly review",
+      badge: (
+        <Badge variant="warning">
+          {formatVariance(category.variance, summary.currency)}
+        </Badge>
+      ),
+      body: `Planned ${formatMinorUnits(
+        category.plannedAmount,
+        summary.currency,
+      )} • Actual ${formatMinorUnits(category.actualAmount, summary.currency)}`,
+      title: `${category.categoryName} is running over baseline`,
+    })),
+  ].filter((row): row is AttentionRow => row !== null);
+
   return (
     <div className="space-y-6">
       <PageHeader
-        badge={<Badge variant="accent">Phase 11 ready</Badge>}
-        description="A calm local-first summary of the current budget month: planned versus actual savings, uncategorized work left to do, recent imports, and the quickest paths back into the ledger."
+        badge={<Badge variant="accent">Dashboard live</Badge>}
+        description="A tighter local-first operating view of the active month: savings, outstanding review work, recent imports, and the fastest routes back into the ledger."
         eyebrow="Dashboard"
         title="2cents dashboard"
       />
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <SummaryCard
-          description={`Actual savings for ${monthLabel}.`}
+      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <SummaryMetric
+          caption={`Actual savings for ${monthLabel}.`}
           label="Actual savings"
           tone={
             (activeSnapshot?.actualSavings ?? 0) >= 0 ? "positive" : "negative"
@@ -119,8 +179,8 @@ export function DashboardPreview() {
               : "Not ready"
           }
         />
-        <SummaryCard
-          description={`Planned savings target for ${monthLabel}.`}
+        <SummaryMetric
+          caption={`Planned savings target for ${monthLabel}.`}
           label="Planned savings"
           value={
             activeSnapshot
@@ -128,8 +188,8 @@ export function DashboardPreview() {
               : "Not ready"
           }
         />
-        <SummaryCard
-          description="Positive means the month is ahead of the baseline savings target."
+        <SummaryMetric
+          caption="Positive means the month is ahead of the savings target."
           label="Savings variance"
           tone={
             (activeSnapshot?.variance ?? 0) > 0
@@ -144,190 +204,89 @@ export function DashboardPreview() {
               : "Not ready"
           }
         />
-        <SummaryCard
-          description="Visible work still waiting for a category in the current review month."
+        <SummaryMetric
+          caption="Transactions in the active month that still need review."
           label="Uncategorized"
+          tone={summary.uncategorizedCount > 0 ? "negative" : "default"}
           value={String(summary.uncategorizedCount)}
         />
       </section>
 
       {bootstrap.errorMessage ? (
-        <div className="border-warning/30 text-warning rounded-[28px] border bg-orange-50 px-5 py-4 text-sm leading-6">
+        <Notice tone="warning">
           {bootstrap.errorMessage}
-        </div>
+        </Notice>
       ) : null}
 
-      <section className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+      <section className="grid gap-4 xl:grid-cols-[1.25fr_0.85fr]">
         <div className="grid gap-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Current month status</CardTitle>
+          <Card variant="elevated">
+            <CardHeader className="border-b border-line/60">
+              <CardTitle>Needs attention</CardTitle>
               <CardDescription>
-                A single operating view of the active budget, current snapshot,
-                and the volume of local data on this browser.
+                Start with anything uncategorized or running above the baseline.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="border-line/70 bg-panel-strong/35 rounded-[24px] border px-4 py-4">
-                  <p className="text-muted text-sm">Budget baseline</p>
-                  <p className="text-ink mt-2 text-lg font-semibold tracking-tight">
-                    {summary.activeBudgetName ?? "No active baseline"}
-                  </p>
-                </div>
-                <div className="border-line/70 bg-panel-strong/35 rounded-[24px] border px-4 py-4">
-                  <p className="text-muted text-sm">Review period</p>
-                  <p className="text-ink mt-2 text-lg font-semibold tracking-tight">
-                    {monthLabel}
-                  </p>
-                </div>
-                <div className="border-line/70 bg-panel-strong/35 rounded-[24px] border px-4 py-4">
-                  <p className="text-muted text-sm">Transactions</p>
-                  <p className="text-ink mt-2 text-lg font-semibold tracking-tight">
-                    {summary.transactionCount}
-                  </p>
-                </div>
-                <div className="border-line/70 bg-panel-strong/35 rounded-[24px] border px-4 py-4">
-                  <p className="text-muted text-sm">Saved rules</p>
-                  <p className="text-ink mt-2 text-lg font-semibold tracking-tight">
-                    {summary.ruleCount}
-                  </p>
-                </div>
-              </div>
-
-              {activeSnapshot ? (
-                <div className="border-line/70 bg-panel-strong/35 rounded-[24px] border px-4 py-4">
-                  <p className="text-muted text-sm">Income vs expenses</p>
-                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                    <div>
-                      <p className="text-muted text-xs uppercase tracking-[0.18em]">
-                        Actual income
-                      </p>
-                      <p className="text-ink mt-1 font-semibold">
-                        {formatMinorUnits(activeSnapshot.actualIncome, summary.currency)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-muted text-xs uppercase tracking-[0.18em]">
-                        Actual expenses
-                      </p>
-                      <p className="text-ink mt-1 font-semibold">
-                        {formatMinorUnits(
-                          activeSnapshot.actualExpenses,
-                          summary.currency,
-                        )}
-                      </p>
-                    </div>
-                  </div>
+            <CardContent className="pt-4">
+              {attentionRows.length === 0 ? (
+                <div className="border-line/70 bg-panel-strong/25 text-muted rounded-xl border px-4 py-4 text-sm leading-6">
+                  The current month is in a calm state. Nothing is uncategorized
+                  and no tracked expense categories are over baseline.
                 </div>
               ) : (
-                <div className="border-line/70 bg-panel-strong/35 text-muted rounded-[24px] border px-4 py-4 text-sm leading-6">
-                  No monthly snapshot is available yet. Import activity or add
-                  transactions to populate the dashboard.
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick actions</CardTitle>
-              <CardDescription>
-                The fastest routes back into the day-to-day budgeting workflow.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-wrap gap-3">
-              <Link className={buttonVariants({ variant: "primary" })} href="/imports">
-                Import statement
-              </Link>
-              <Link
-                className={buttonVariants({ variant: "secondary" })}
-                href="/transactions"
-              >
-                Review transactions
-              </Link>
-              <Link
-                className={buttonVariants({ variant: "secondary" })}
-                href="/monthly-review"
-              >
-                Open monthly review
-              </Link>
-              <Link
-                className={buttonVariants({ variant: "secondary" })}
-                href="/settings"
-              >
-                Open settings
-              </Link>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="grid gap-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Top overspend areas</CardTitle>
-              <CardDescription>
-                Expense categories currently running above the baseline.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {summary.overBudgetCategories.length === 0 ? (
-                <div className="border-line/70 bg-panel-strong/35 text-muted rounded-[24px] border px-4 py-4 text-sm leading-6">
-                  No expense categories are over budget for the current review
-                  month.
-                </div>
-              ) : (
-                summary.overBudgetCategories.map((category) => (
-                  <div
-                    className="border-line/70 bg-panel-strong/35 rounded-[24px] border px-4 py-4"
-                    key={category.categoryId}
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <p className="text-ink font-semibold tracking-tight">
-                          {category.categoryName}
-                        </p>
-                        <p className="text-muted mt-1 text-sm leading-6">
-                          Planned{" "}
-                          {formatMinorUnits(category.plannedAmount, summary.currency)}{" "}
-                          • Actual{" "}
-                          {formatMinorUnits(category.actualAmount, summary.currency)}
-                        </p>
+                <List>
+                  {attentionRows.map((row) => (
+                    <ListRow className="items-center gap-3" key={row.title}>
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-ink text-sm font-semibold tracking-tight">
+                            {row.title}
+                          </p>
+                          {row.badge}
+                        </div>
+                        <p className="text-muted text-sm leading-5">{row.body}</p>
                       </div>
-                      <Badge variant="warning">
-                        {formatVariance(category.variance, summary.currency)}
-                      </Badge>
-                    </div>
-                  </div>
-                ))
+                      <Link
+                        className={buttonVariants({ size: "sm", variant: "secondary" })}
+                        href={row.actionHref}
+                      >
+                        {row.actionLabel}
+                      </Link>
+                    </ListRow>
+                  ))}
+                </List>
               )}
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader>
+            <CardHeader className="border-b border-line/60">
               <CardTitle>Recent imports</CardTitle>
               <CardDescription>
                 The most recent locally saved statement files.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="pt-4">
               {summary.recentImports.length === 0 ? (
-                <div className="border-line/70 bg-panel-strong/35 text-muted rounded-[24px] border px-4 py-4 text-sm leading-6">
+                <div className="border-line/70 bg-panel-strong/25 text-muted rounded-xl border px-4 py-4 text-sm leading-6">
                   No statement imports have been saved yet.
                 </div>
               ) : (
-                summary.recentImports.map((statementImport) => (
-                  <div
-                    className="border-line/70 bg-panel-strong/35 rounded-[24px] border px-4 py-4"
-                    key={statementImport.id}
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <p className="text-ink font-semibold tracking-tight">
-                          {statementImport.fileName}
-                        </p>
-                        <p className="text-muted mt-1 text-sm leading-6">
+                <List>
+                  {summary.recentImports.map((statementImport) => (
+                    <ListRow className="items-center gap-3" key={statementImport.id}>
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-ink truncate text-sm font-semibold tracking-tight">
+                            {statementImport.fileName}
+                          </p>
+                          <Badge
+                            variant={getImportBadgeVariant(statementImport.status)}
+                          >
+                            {statementImport.status}
+                          </Badge>
+                        </div>
+                        <p className="text-muted text-sm leading-5">
                           {formatMonthKeyLabel(
                             statementImport.monthKey,
                             "en-US",
@@ -336,15 +295,144 @@ export function DashboardPreview() {
                           • {statementImport.importedRowCount} imported rows
                         </p>
                       </div>
-                      <Badge variant={getImportBadgeVariant(statementImport.status)}>
-                        {statementImport.status}
-                      </Badge>
-                    </div>
-                  </div>
-                ))
+                    </ListRow>
+                  ))}
+                </List>
               )}
             </CardContent>
           </Card>
+        </div>
+
+        <div className="grid gap-4">
+          <Card>
+            <CardHeader className="border-b border-line/60">
+              <CardTitle>Quick actions</CardTitle>
+              <CardDescription>
+                Fastest routes back into the working screens.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-wrap gap-3 pt-4">
+              <QuickActionLink href="/imports" label="Import statement" tone="primary" />
+              <QuickActionLink href="/transactions" label="Review transactions" />
+              <QuickActionLink href="/monthly-review" label="Open monthly review" />
+              <QuickActionLink href="/settings" label="Open settings" />
+            </CardContent>
+          </Card>
+
+          <Card variant="muted">
+            <CardHeader className="border-b border-line/60">
+              <CardTitle>Workspace snapshot</CardTitle>
+              <CardDescription>
+                Current local baseline, review period, and stored volume.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-4">
+              <List>
+                <ListRow className="items-center justify-between gap-4">
+                  <div>
+                    <p className="text-ink text-sm font-semibold">Budget baseline</p>
+                    <p className="text-muted text-sm leading-5">
+                      Active plan on this device
+                    </p>
+                  </div>
+                  <p className="text-ink text-sm font-semibold">
+                    {summary.activeBudgetName ?? "No active baseline"}
+                  </p>
+                </ListRow>
+                <ListRow className="items-center justify-between gap-4">
+                  <div>
+                    <p className="text-ink text-sm font-semibold">Review period</p>
+                    <p className="text-muted text-sm leading-5">
+                      Current month label using your month-start preference
+                    </p>
+                  </div>
+                  <p className="text-ink text-sm font-semibold">{monthLabel}</p>
+                </ListRow>
+                <ListRow className="items-center justify-between gap-4">
+                  <div>
+                    <p className="text-ink text-sm font-semibold">Transactions</p>
+                    <p className="text-muted text-sm leading-5">
+                      Saved locally in this browser
+                    </p>
+                  </div>
+                  <p className="text-ink text-sm font-semibold">
+                    {summary.transactionCount}
+                  </p>
+                </ListRow>
+                <ListRow className="items-center justify-between gap-4">
+                  <div>
+                    <p className="text-ink text-sm font-semibold">Saved rules</p>
+                    <p className="text-muted text-sm leading-5">
+                      Merchant matching rules ready for reuse
+                    </p>
+                  </div>
+                  <p className="text-ink text-sm font-semibold">{summary.ruleCount}</p>
+                </ListRow>
+                <ListRow className="items-center justify-between gap-4">
+                  <div>
+                    <p className="text-ink text-sm font-semibold">Categories</p>
+                    <p className="text-muted text-sm leading-5">
+                      Active baseline categories
+                    </p>
+                  </div>
+                  <p className="text-ink text-sm font-semibold">
+                    {summary.categoryCount}
+                  </p>
+                </ListRow>
+                <ListRow className="items-center justify-between gap-4">
+                  <div>
+                    <p className="text-ink text-sm font-semibold">Saved imports</p>
+                    <p className="text-muted text-sm leading-5">
+                      Statement files tracked in import history
+                    </p>
+                  </div>
+                  <p className="text-ink text-sm font-semibold">
+                    {summary.importCount}
+                  </p>
+                </ListRow>
+              </List>
+            </CardContent>
+          </Card>
+
+          {activeSnapshot ? (
+            <Card>
+              <CardHeader className="border-b border-line/60">
+                <CardTitle>Income and expenses</CardTitle>
+                <CardDescription>
+                  Actual movement for the active review month.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <List>
+                  <ListRow className="items-center justify-between gap-4">
+                    <div>
+                      <p className="text-ink text-sm font-semibold">Actual income</p>
+                      <p className="text-muted text-sm leading-5">
+                        Imported and manual inflows in {monthLabel}
+                      </p>
+                    </div>
+                    <p className="text-ink text-sm font-semibold">
+                      {formatMinorUnits(activeSnapshot.actualIncome, summary.currency)}
+                    </p>
+                  </ListRow>
+                  <ListRow className="items-center justify-between gap-4">
+                    <div>
+                      <p className="text-ink text-sm font-semibold">Actual expenses</p>
+                      <p className="text-muted text-sm leading-5">
+                        Imported and manual outflows in {monthLabel}
+                      </p>
+                    </div>
+                    <p className="text-ink text-sm font-semibold">
+                      {formatMinorUnits(
+                        activeSnapshot.actualExpenses,
+                        summary.currency,
+                      )}
+                    </p>
+                  </ListRow>
+                </List>
+              </CardContent>
+            </Card>
+          ) : null}
         </div>
       </section>
     </div>

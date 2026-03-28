@@ -12,8 +12,8 @@ export function PwaStatusBanner() {
 
   if (pwa.isUpdateReady) {
     return (
-      <div className="fixed inset-x-4 bottom-24 z-30 print:hidden lg:bottom-6 lg:left-auto lg:right-6 lg:w-[24rem]">
-        <Card className="border-accent/25 shadow-[0_28px_60px_-36px_rgba(31,27,22,0.6)]">
+      <div className="fixed inset-x-4 bottom-[calc(env(safe-area-inset-bottom)+6.75rem)] z-30 print:hidden lg:bottom-6 lg:left-auto lg:right-6 lg:w-[24rem]">
+        <Card className="border-accent/25" variant="elevated">
           <CardContent className="space-y-4 p-5">
             <div>
               <p className="text-ink text-sm font-semibold tracking-tight">
@@ -36,8 +36,8 @@ export function PwaStatusBanner() {
 
   if (pwa.canInstall) {
     return (
-      <div className="fixed inset-x-4 bottom-24 z-30 print:hidden lg:bottom-6 lg:left-auto lg:right-6 lg:w-[24rem]">
-        <Card className="border-line/90 shadow-[0_28px_60px_-36px_rgba(31,27,22,0.6)]">
+      <div className="fixed inset-x-4 bottom-[calc(env(safe-area-inset-bottom)+6.75rem)] z-30 print:hidden lg:bottom-6 lg:left-auto lg:right-6 lg:w-[24rem]">
+        <Card className="border-line/90" variant="elevated">
           <CardContent className="space-y-4 p-5">
             <div>
               <p className="text-ink text-sm font-semibold tracking-tight">
@@ -68,8 +68,8 @@ export function PwaStatusBanner() {
 
   if (pwa.isOfflineReady && !offlineReadyDismissed) {
     return (
-      <div className="fixed inset-x-4 bottom-24 z-30 print:hidden lg:bottom-6 lg:left-auto lg:right-6 lg:w-[24rem]">
-        <Card className="border-success/20 shadow-[0_28px_60px_-36px_rgba(31,27,22,0.6)]">
+      <div className="fixed inset-x-4 bottom-[calc(env(safe-area-inset-bottom)+6.75rem)] z-30 print:hidden lg:bottom-6 lg:left-auto lg:right-6 lg:w-[24rem]">
+        <Card className="border-success/20" variant="elevated">
           <CardContent className="space-y-4 p-5">
             <div>
               <p className="text-ink text-sm font-semibold tracking-tight">

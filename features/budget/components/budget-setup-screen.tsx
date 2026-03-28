@@ -16,11 +16,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { List, ListRow } from "@/components/ui/list";
+import { Notice } from "@/components/ui/notice";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { formatMinorUnits } from "@/lib/money";
 
-import { BudgetImportCard } from "@/features/budget/components/budget-import-card";
 import { useBudgetBaseline } from "@/features/budget/hooks/use-budget-baseline";
 import { saveBudgetBaselineDraft } from "@/features/budget/lib/budget-baseline";
 import {
@@ -28,9 +29,7 @@ import {
   createEmptyBudgetCategoryFormValue,
   mapBudgetBaselineToFormValues,
   normalizeBudgetFormValues,
-  normalizeBudgetPlanMetadataDraft,
   summarizeBudgetFormCategories,
-  type BudgetBaselineDraftCategory,
   type BudgetFormValues,
 } from "@/features/budget/lib/budget-form";
 
@@ -63,6 +62,24 @@ type CategorySectionProps = {
     index: number;
   }>;
 };
+
+function SummaryMetric(props: {
+  description: string;
+  label: string;
+  value: string | number;
+}) {
+  return (
+    <div className="border-line/70 bg-panel/96 space-y-1 rounded-xl border px-4 py-3">
+      <p className="text-muted text-xs font-semibold uppercase tracking-[0.14em]">
+        {props.label}
+      </p>
+      <p className="text-ink text-xl font-semibold tracking-tight">
+        {props.value}
+      </p>
+      <p className="text-muted text-sm leading-5">{props.description}</p>
+    </div>
+  );
+}
 
 function CategorySection({
   errors,
@@ -97,109 +114,102 @@ function CategorySection({
       </div>
 
       {rows.length === 0 ? (
-        <div className="border-line/70 bg-panel-strong/35 text-muted rounded-[24px] border px-4 py-4 text-sm leading-6">
+        <div className="border-line/70 bg-panel text-muted rounded-xl border px-4 py-4 text-sm leading-6">
           No {kind} categories yet.
         </div>
       ) : (
-        <div className="space-y-3">
-          {rows.map((row) => (
-            <div
-              className="border-line/70 bg-panel-strong/30 rounded-[24px] border p-4"
-              key={row.fieldKey}
-            >
-              <input
-                type="hidden"
-                {...register(`categories.${row.index}.id`)}
-              />
-              <input
-                type="hidden"
-                {...register(`categories.${row.index}.kind`)}
-              />
-              <input
-                type="hidden"
-                {...register(`categories.${row.index}.color`)}
-              />
-              <input
-                type="hidden"
-                {...register(`categories.${row.index}.iconKey`)}
-              />
+        <div className="space-y-2">
+          <div className="text-muted hidden grid-cols-[minmax(0,1.6fr)_minmax(0,0.9fr)_minmax(0,1fr)_auto] px-4 text-xs font-semibold uppercase tracking-[0.16em] md:grid">
+            <span>Category</span>
+            <span>Mode</span>
+            <span>Planned amount</span>
+            <span className="text-right">Action</span>
+          </div>
+          <List>
+            {rows.map((row) => (
+              <ListRow className="items-start gap-3" key={row.fieldKey}>
+                <input type="hidden" {...register(`categories.${row.index}.id`)} />
+                <input type="hidden" {...register(`categories.${row.index}.kind`)} />
+                <input type="hidden" {...register(`categories.${row.index}.color`)} />
+                <input type="hidden" {...register(`categories.${row.index}.iconKey`)} />
 
-              <div className="grid gap-3 md:grid-cols-[1.6fr_0.9fr_1fr_auto]">
-                <div className="space-y-2">
-                  <label
-                    className="text-ink block text-sm font-semibold"
-                    htmlFor={`budget-category-name-${row.index}`}
-                  >
-                    Category name
-                  </label>
-                  <Input
-                    id={`budget-category-name-${row.index}`}
-                    placeholder={
-                      kind === "income"
-                        ? "Salary, freelance..."
-                        : "Rent, groceries..."
-                    }
-                    {...register(`categories.${row.index}.name`)}
-                  />
-                  {errors.categories?.[row.index]?.name ? (
-                    <p className="text-warning text-sm">
-                      {errors.categories[row.index]?.name?.message}
-                    </p>
-                  ) : null}
-                </div>
-
-                <div className="space-y-2">
-                  <label
-                    className="text-ink block text-sm font-semibold"
-                    htmlFor={`budget-category-mode-${row.index}`}
-                  >
-                    Mode
-                  </label>
-                  <Select
-                    id={`budget-category-mode-${row.index}`}
-                    {...register(`categories.${row.index}.mode`)}
-                  >
-                    <option value="fixed">Fixed</option>
-                    <option value="variable">Variable</option>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <label
-                    className="text-ink block text-sm font-semibold"
-                    htmlFor={`budget-category-amount-${row.index}`}
-                  >
-                    Planned amount
-                  </label>
-                  <Input
-                    id={`budget-category-amount-${row.index}`}
-                    inputMode="decimal"
-                    placeholder="0.00"
-                    {...register(`categories.${row.index}.plannedAmountInput`)}
-                  />
-                  {errors.categories?.[row.index]?.plannedAmountInput ? (
-                    <p className="text-warning text-sm">
-                      {
-                        errors.categories[row.index]?.plannedAmountInput
-                          ?.message
+                <div className="grid w-full gap-3 md:grid-cols-[minmax(0,1.6fr)_minmax(0,0.9fr)_minmax(0,1fr)_auto]">
+                  <div className="space-y-2">
+                    <label
+                      className="text-ink block text-sm font-semibold md:sr-only"
+                      htmlFor={`budget-category-name-${row.index}`}
+                    >
+                      Category name
+                    </label>
+                    <Input
+                      id={`budget-category-name-${row.index}`}
+                      placeholder={
+                        kind === "income"
+                          ? "Salary, freelance..."
+                          : "Rent, groceries..."
                       }
-                    </p>
-                  ) : null}
-                </div>
+                      {...register(`categories.${row.index}.name`)}
+                    />
+                    {errors.categories?.[row.index]?.name ? (
+                      <p className="text-warning text-sm">
+                        {errors.categories[row.index]?.name?.message}
+                      </p>
+                    ) : null}
+                  </div>
 
-                <div className="flex items-end">
-                  <Button
-                    onClick={() => onRemoveCategory(row.index)}
-                    size="sm"
-                    type="button"
-                    variant="ghost"
-                  >
-                    Remove
-                  </Button>
+                  <div className="space-y-2">
+                    <label
+                      className="text-ink block text-sm font-semibold md:sr-only"
+                      htmlFor={`budget-category-mode-${row.index}`}
+                    >
+                      Mode
+                    </label>
+                    <Select
+                      id={`budget-category-mode-${row.index}`}
+                      {...register(`categories.${row.index}.mode`)}
+                    >
+                      <option value="fixed">Fixed</option>
+                      <option value="variable">Variable</option>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label
+                      className="text-ink block text-sm font-semibold md:sr-only"
+                      htmlFor={`budget-category-amount-${row.index}`}
+                    >
+                      Planned amount
+                    </label>
+                    <Input
+                      id={`budget-category-amount-${row.index}`}
+                      inputMode="decimal"
+                      placeholder="0.00"
+                      {...register(`categories.${row.index}.plannedAmountInput`)}
+                    />
+                    {errors.categories?.[row.index]?.plannedAmountInput ? (
+                      <p className="text-warning text-sm">
+                        {
+                          errors.categories[row.index]?.plannedAmountInput
+                            ?.message
+                        }
+                      </p>
+                    ) : null}
+                  </div>
+
+                  <div className="flex items-center md:justify-end">
+                    <Button
+                      onClick={() => onRemoveCategory(row.index)}
+                      size="sm"
+                      type="button"
+                      variant="ghost"
+                    >
+                      Remove
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            </div>
-          ))}
+              </ListRow>
+            ))}
+          </List>
         </div>
       )}
     </section>
@@ -253,16 +263,6 @@ export function BudgetSetupScreen() {
     form.reset(mapBudgetBaselineToFormValues(baseline));
   }, [baseline, form]);
 
-  async function saveCategories(categories: BudgetBaselineDraftCategory[]) {
-    const currentValues = form.getValues();
-    const plan = normalizeBudgetPlanMetadataDraft(currentValues);
-
-    await saveBudgetBaselineDraft({
-      categories,
-      plan,
-    });
-  }
-
   const handleManualSubmit = form.handleSubmit(async (values) => {
     setIsSaving(true);
     setMessage(null);
@@ -287,23 +287,12 @@ export function BudgetSetupScreen() {
     }
   });
 
-  async function handleApplyImportedCategories(
-    categories: BudgetBaselineDraftCategory[],
-  ) {
-    setMessage(null);
-    await saveCategories(categories);
-    setMessage({
-      body: "Imported categories applied to the active budget baseline. Matching categories were updated and the rest were archived safely.",
-      tone: "success",
-    });
-  }
-
   if (bootstrap.status === "booting" || !baseline) {
     return (
       <div className="space-y-6">
         <PageHeader
-          badge={<Badge variant="accent">Phase 3 loading</Badge>}
-          description="Preparing the local budget baseline so manual editing and import staging can start from real data."
+          badge={<Badge variant="accent">Budget loading</Badge>}
+          description="Preparing the local budget baseline so manual editing can start from real data."
           eyebrow="Budget setup"
           title="Budget setup"
         />
@@ -319,226 +308,197 @@ export function BudgetSetupScreen() {
   return (
     <div className="space-y-6">
       <PageHeader
-        badge={<Badge variant="accent">Phase 3 live</Badge>}
-        description="Define the active budget baseline manually or stage a CSV/XLSX import. Expected savings stays derived from planned income minus planned expenses so the baseline stays internally consistent."
+        badge={<Badge variant="accent">Manual baseline</Badge>}
+        description="Build the active budget baseline directly in the app. Expected savings stays derived from planned income minus planned expenses so the baseline stays internally consistent."
         eyebrow="Budget setup"
         title="Budget setup"
       />
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Card>
-          <CardHeader className="space-y-2">
-            <CardDescription>Planned income</CardDescription>
-            <CardTitle className="text-2xl">
-              {formatMinorUnits(
-                currentSummary.plannedIncome,
-                form.getValues("currency"),
-              )}
-            </CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader className="space-y-2">
-            <CardDescription>Planned expenses</CardDescription>
-            <CardTitle className="text-2xl">
-              {formatMinorUnits(
-                currentSummary.plannedExpenses,
-                form.getValues("currency"),
-              )}
-            </CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader className="space-y-2">
-            <CardDescription>Expected savings</CardDescription>
-            <CardTitle className="text-2xl">
-              {formatMinorUnits(
-                currentSummary.expectedSavings,
-                form.getValues("currency"),
-              )}
-            </CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader className="space-y-2">
-            <CardDescription>Active categories</CardDescription>
-            <CardTitle className="text-2xl">
-              {categoriesByKind.income.length + categoriesByKind.expense.length}
-            </CardTitle>
-          </CardHeader>
-        </Card>
+      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <SummaryMetric
+          description="Current planned monthly income."
+          label="Planned income"
+          value={formatMinorUnits(
+            currentSummary.plannedIncome,
+            form.getValues("currency"),
+          )}
+        />
+        <SummaryMetric
+          description="Current planned monthly expenses."
+          label="Planned expenses"
+          value={formatMinorUnits(
+            currentSummary.plannedExpenses,
+            form.getValues("currency"),
+          )}
+        />
+        <SummaryMetric
+          description="Derived income minus expenses."
+          label="Expected savings"
+          value={formatMinorUnits(
+            currentSummary.expectedSavings,
+            form.getValues("currency"),
+          )}
+        />
+        <SummaryMetric
+          description="Active categories in the baseline."
+          label="Active categories"
+          value={categoriesByKind.income.length + categoriesByKind.expense.length}
+        />
       </section>
 
       {message ? (
-        <div
-          className={
-            message.tone === "error"
-              ? "border-warning/30 text-warning rounded-[28px] border bg-orange-50 px-5 py-4 text-sm leading-6"
-              : "border-success/20 text-success rounded-[28px] border bg-emerald-50 px-5 py-4 text-sm leading-6"
-          }
-        >
+        <Notice tone={message.tone}>
           {message.body}
-        </div>
+        </Notice>
       ) : null}
 
       {bootstrap.errorMessage ? (
-        <div className="border-warning/30 text-warning rounded-[28px] border bg-orange-50 px-5 py-4 text-sm leading-6">
+        <Notice tone="warning">
           {bootstrap.errorMessage}
-        </div>
+        </Notice>
       ) : null}
 
-      <section className="grid gap-4 xl:grid-cols-[1.25fr_0.95fr]">
-        <Card>
-          <CardHeader>
-            <CardTitle>Manual baseline editor</CardTitle>
-            <CardDescription>
-              Changes save into the active local baseline and immediately update
-              the derived monthly snapshots.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form
-              className="space-y-6"
-              onSubmit={(event) => void handleManualSubmit(event)}
-            >
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2 md:col-span-2">
-                  <label
-                    className="text-ink block text-sm font-semibold"
-                    htmlFor="budget-name"
-                  >
-                    Budget name
-                  </label>
-                  <Input id="budget-name" {...form.register("name")} />
-                  {form.formState.errors.name ? (
-                    <p className="text-warning text-sm">
-                      {form.formState.errors.name.message}
-                    </p>
-                  ) : null}
-                </div>
-
-                <div className="space-y-2">
-                  <label
-                    className="text-ink block text-sm font-semibold"
-                    htmlFor="budget-currency"
-                  >
-                    Currency
-                  </label>
-                  <Input
-                    autoCapitalize="characters"
-                    id="budget-currency"
-                    maxLength={3}
-                    {...form.register("currency")}
-                  />
-                  {form.formState.errors.currency ? (
-                    <p className="text-warning text-sm">
-                      {form.formState.errors.currency.message}
-                    </p>
-                  ) : null}
-                </div>
-
-                <div className="space-y-2">
-                  <label
-                    className="text-ink block text-sm font-semibold"
-                    htmlFor="budget-month-start-day"
-                  >
-                    Month start day
-                  </label>
-                  <Select
-                    id="budget-month-start-day"
-                    {...form.register("monthStartDay", {
-                      setValueAs: (value) => Number(value),
-                    })}
-                  >
-                    {monthStartOptions.map((day) => (
-                      <option key={day} value={day}>
-                        Day {day}
-                      </option>
-                    ))}
-                  </Select>
-                  <p className="text-muted text-sm leading-6">
-                    Keep this aligned with how you review monthly statements.
-                  </p>
-                </div>
-
-                <div className="space-y-2 md:col-span-2">
-                  <label
-                    className="text-ink block text-sm font-semibold"
-                    htmlFor="budget-notes"
-                  >
-                    Notes
-                  </label>
-                  <Textarea
-                    id="budget-notes"
-                    placeholder="Optional planning notes for this baseline."
-                    {...form.register("notes")}
-                  />
-                  {form.formState.errors.notes ? (
-                    <p className="text-warning text-sm">
-                      {form.formState.errors.notes.message}
-                    </p>
-                  ) : null}
-                </div>
-              </div>
-
-              <div className="border-line/70 bg-panel-strong/35 text-muted rounded-[24px] border px-4 py-4 text-sm leading-6">
-                Expected savings is derived automatically from planned income
-                minus planned expenses. This avoids the baseline drifting into
-                contradictory totals.
-              </div>
-
-              <CategorySection
-                errors={form.formState.errors}
-                kind="income"
-                onAddCategory={(kind) =>
-                  fieldArray.append(createEmptyBudgetCategoryFormValue(kind))
-                }
-                onRemoveCategory={(index) => fieldArray.remove(index)}
-                register={form.register}
-                rows={categoriesByKind.income}
-              />
-
-              <CategorySection
-                errors={form.formState.errors}
-                kind="expense"
-                onAddCategory={(kind) =>
-                  fieldArray.append(createEmptyBudgetCategoryFormValue(kind))
-                }
-                onRemoveCategory={(index) => fieldArray.remove(index)}
-                register={form.register}
-                rows={categoriesByKind.expense}
-              />
-
-              {form.formState.errors.categories?.message ? (
-                <p className="text-warning text-sm">
-                  {form.formState.errors.categories.message}
-                </p>
-              ) : null}
-
-              <div className="flex flex-wrap gap-3">
-                <Button disabled={isSaving} type="submit" variant="primary">
-                  {isSaving ? "Saving baseline..." : "Save baseline"}
-                </Button>
-                <Button
-                  disabled={isSaving}
-                  onClick={() =>
-                    form.reset(mapBudgetBaselineToFormValues(baseline))
-                  }
-                  type="button"
-                  variant="secondary"
+      <Card variant="elevated">
+        <CardHeader className="border-b border-line/60">
+          <CardTitle>Baseline editor</CardTitle>
+          <CardDescription>
+            Changes save into the active local baseline and immediately update
+            the derived monthly snapshots.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="pt-4">
+          <form
+            className="space-y-6"
+            onSubmit={(event) => void handleManualSubmit(event)}
+          >
+            <div className="grid gap-4 md:grid-cols-[minmax(0,1.5fr)_minmax(0,0.65fr)_minmax(0,0.85fr)]">
+              <div className="space-y-2">
+                <label
+                  className="text-ink block text-sm font-semibold"
+                  htmlFor="budget-name"
                 >
-                  Reset to saved baseline
-                </Button>
+                  Budget name
+                </label>
+                <Input id="budget-name" {...form.register("name")} />
+                {form.formState.errors.name ? (
+                  <p className="text-warning text-sm">
+                    {form.formState.errors.name.message}
+                  </p>
+                ) : null}
               </div>
-            </form>
-          </CardContent>
-        </Card>
 
-        <BudgetImportCard
-          disabled={isSaving}
-          onApplyImport={handleApplyImportedCategories}
-        />
-      </section>
+              <div className="space-y-2">
+                <label
+                  className="text-ink block text-sm font-semibold"
+                  htmlFor="budget-currency"
+                >
+                  Currency
+                </label>
+                <Input
+                  autoCapitalize="characters"
+                  id="budget-currency"
+                  maxLength={3}
+                  {...form.register("currency")}
+                />
+                {form.formState.errors.currency ? (
+                  <p className="text-warning text-sm">
+                    {form.formState.errors.currency.message}
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="space-y-2">
+                <label
+                  className="text-ink block text-sm font-semibold"
+                  htmlFor="budget-month-start-day"
+                >
+                  Month start day
+                </label>
+                <Select
+                  id="budget-month-start-day"
+                  {...form.register("monthStartDay", {
+                    setValueAs: (value) => Number(value),
+                  })}
+                >
+                  {monthStartOptions.map((day) => (
+                    <option key={day} value={day}>
+                      Day {day}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+
+              <div className="space-y-2 md:col-span-3">
+                <label
+                  className="text-ink block text-sm font-semibold"
+                  htmlFor="budget-notes"
+                >
+                  Notes
+                </label>
+                <Textarea
+                  id="budget-notes"
+                  placeholder="Optional planning notes for this baseline."
+                  {...form.register("notes")}
+                />
+                {form.formState.errors.notes ? (
+                  <p className="text-warning text-sm">
+                    {form.formState.errors.notes.message}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+
+            <div className="border-line/70 bg-panel text-muted rounded-xl border px-4 py-4 text-sm leading-6">
+              Expected savings is derived automatically from planned income
+              minus planned expenses. This keeps the baseline internally
+              consistent and removes the need to maintain a separate savings
+              field by hand.
+            </div>
+
+            <CategorySection
+              errors={form.formState.errors}
+              kind="income"
+              onAddCategory={(kind) =>
+                fieldArray.append(createEmptyBudgetCategoryFormValue(kind))
+              }
+              onRemoveCategory={(index) => fieldArray.remove(index)}
+              register={form.register}
+              rows={categoriesByKind.income}
+            />
+
+            <CategorySection
+              errors={form.formState.errors}
+              kind="expense"
+              onAddCategory={(kind) =>
+                fieldArray.append(createEmptyBudgetCategoryFormValue(kind))
+              }
+              onRemoveCategory={(index) => fieldArray.remove(index)}
+              register={form.register}
+              rows={categoriesByKind.expense}
+            />
+
+            {form.formState.errors.categories?.message ? (
+              <p className="text-warning text-sm">
+                {form.formState.errors.categories.message}
+              </p>
+            ) : null}
+
+            <div className="border-line/60 flex flex-wrap gap-3 border-t pt-4">
+              <Button disabled={isSaving} type="submit" variant="primary">
+                {isSaving ? "Saving baseline..." : "Save baseline"}
+              </Button>
+              <Button
+                disabled={isSaving}
+                onClick={() => form.reset(mapBudgetBaselineToFormValues(baseline))}
+                type="button"
+                variant="secondary"
+              >
+                Reset to saved baseline
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 }
