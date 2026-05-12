@@ -2,11 +2,15 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
-const generatedTypesDirectory = path.join(process.cwd(), ".next", "types");
+const generatedTypesDirectories = [
+  path.join(process.cwd(), ".next", "types"),
+  path.join(process.cwd(), ".next", "dev", "types"),
+];
 const typeScriptBuildInfoPath = path.join(
   process.cwd(),
   "tsconfig.tsbuildinfo",
 );
+const tsConfigPath = path.join(process.cwd(), "tsconfig.json");
 const nextBinaryPath = path.join(
   process.cwd(),
   "node_modules",
@@ -22,11 +26,14 @@ const tscBinaryPath = path.join(
   "bin",
   "tsc",
 );
+const originalTsConfig = fs.readFileSync(tsConfigPath, "utf8");
 
-fs.rmSync(generatedTypesDirectory, {
-  force: true,
-  recursive: true,
-});
+for (const generatedTypesDirectory of generatedTypesDirectories) {
+  fs.rmSync(generatedTypesDirectory, {
+    force: true,
+    recursive: true,
+  });
+}
 fs.rmSync(typeScriptBuildInfoPath, {
   force: true,
 });
@@ -35,6 +42,8 @@ const typegenResult = spawnSync(process.execPath, [nextBinaryPath, "typegen"], {
   env: process.env,
   stdio: "inherit",
 });
+
+fs.writeFileSync(tsConfigPath, originalTsConfig);
 
 if ((typegenResult.status ?? 1) !== 0) {
   process.exit(typegenResult.status ?? 1);

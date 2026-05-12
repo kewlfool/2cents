@@ -1,22 +1,18 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useState } from "react";
 
 import { PageHeader } from "@/components/layout/page-header";
 import { useAppBootstrap } from "@/components/providers/app-bootstrap-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { List, ListRow } from "@/components/ui/list";
 import { Notice } from "@/components/ui/notice";
 import { Select } from "@/components/ui/select";
+import { useImportWorkspace } from "@/features/import/hooks/use-import-workspace";
 import {
   buildStatementImportPreview,
   createStatementImportMapping,
@@ -31,9 +27,8 @@ import {
   deleteStatementImportRecord,
   rollbackStatementImport,
 } from "@/features/import/lib/statement-import-service";
-import { useImportWorkspace } from "@/features/import/hooks/use-import-workspace";
-import { formatMonthKeyLabel } from "@/lib/date";
 import { saveMerchantRuleFromCorrection } from "@/features/rules/lib/rules-service";
+import { formatMonthKeyLabel } from "@/lib/date";
 import { formatMinorUnits } from "@/lib/money";
 import { cn } from "@/lib/utils";
 
@@ -72,18 +67,83 @@ function getRowStatusBadgeVariant(status: "duplicate" | "invalid" | "ready") {
 }
 
 function SummaryMetric(props: {
+  detail: string;
   label: string;
   value: string | number;
 }) {
   return (
-    <div className="border-line/70 bg-panel/96 space-y-1 rounded-xl border px-4 py-3">
+    <div className="border-line/70 bg-panel/96 rounded-[var(--radius-panel)] border px-3 py-2">
       <p className="text-muted text-xs font-semibold uppercase tracking-[0.14em]">
         {props.label}
       </p>
-      <p className="text-ink text-xl font-semibold tracking-tight">
-        {props.value}
-      </p>
+      <div className="mt-1 flex items-end justify-between gap-3">
+        <p className="text-ink text-base font-semibold tracking-tight">
+          {props.value}
+        </p>
+        <p className="text-muted text-right text-[0.75rem] leading-4">
+          {props.detail}
+        </p>
+      </div>
     </div>
+  );
+}
+
+function WorkspaceSection(props: {
+  actions?: ReactNode;
+  children: ReactNode;
+  description?: string;
+  title: string;
+  variant?: "default" | "elevated" | "muted";
+}) {
+  const variantClass =
+    props.variant === "elevated"
+      ? "shadow-[var(--shadow-panel)]"
+      : props.variant === "muted"
+        ? "bg-panel-strong/18"
+        : "bg-panel/96";
+
+  return (
+    <section
+      className={cn(
+        "border-line/70 rounded-[var(--radius-panel)] border",
+        variantClass,
+      )}
+    >
+      <div className="border-line/60 flex items-start justify-between gap-3 border-b px-[var(--space-card)] py-[var(--space-card-compact)]">
+        <div className="min-w-0">
+          <h2 className="text-ink text-sm font-semibold tracking-tight">
+            {props.title}
+          </h2>
+          {props.description ? (
+            <p className="text-muted mt-1 text-[0.8125rem] leading-5">
+              {props.description}
+            </p>
+          ) : null}
+        </div>
+        {props.actions ? <div className="shrink-0">{props.actions}</div> : null}
+      </div>
+      <div className="p-[var(--space-card)]">{props.children}</div>
+    </section>
+  );
+}
+
+function InfoBlock(props: { body: string }) {
+  return (
+    <div className="border-line/70 bg-panel text-muted rounded-[var(--radius-control)] border px-3.5 py-3 text-sm leading-5">
+      {props.body}
+    </div>
+  );
+}
+
+function HistoryMetaRow(props: { label: string; secondary: string; value: ReactNode }) {
+  return (
+    <ListRow className="items-center justify-between gap-4">
+      <div className="min-w-0">
+        <p className="text-ink text-sm font-semibold tracking-tight">{props.label}</p>
+        <p className="text-muted text-[0.75rem] leading-4">{props.secondary}</p>
+      </div>
+      <div className="text-ink shrink-0 text-sm font-semibold">{props.value}</div>
+    </ListRow>
   );
 }
 
@@ -294,16 +354,16 @@ export function ImportsScreen() {
 
   if (bootstrap.status === "booting" || !workspace) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-5">
         <PageHeader
           badge={<Badge variant="accent">Imports loading</Badge>}
-          description="Preparing the local statement import workspace with categories, rules, and historical fingerprints."
+          description="Preparing the statement import workspace."
           eyebrow="Imports"
           title="Imports"
         />
         <Card>
-          <CardContent className="text-muted p-6 text-sm leading-6">
-            Loading the local import workspace from IndexedDB.
+          <CardContent className="text-muted p-5 text-sm leading-5">
+            Loading the local import workspace.
           </CardContent>
         </Card>
       </div>
@@ -311,301 +371,384 @@ export function ImportsScreen() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <PageHeader
-        badge={<Badge variant="accent">Phase 11 ready</Badge>}
-        description="Import monthly card statements locally, inspect every staged transaction, skip duplicates safely, and confirm categories before anything is written."
+        badge={<Badge variant="accent">Imports live</Badge>}
         eyebrow="Imports"
         title="Imports"
       />
 
-      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <SummaryMetric label="Saved rules" value={workspace.rules.length} />
+      <section className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-4">
         <SummaryMetric
-          label="Historical imports"
+          detail="Saved"
+          label="Rules"
+          value={workspace.rules.length}
+        />
+        <SummaryMetric
+          detail="History"
+          label="Imports"
           value={workspace.statementImports.length}
         />
         <SummaryMetric
-          label="Known fingerprints"
+          detail="Duplicate check"
+          label="Fingerprints"
           value={workspace.transactions.length}
         />
         <SummaryMetric
-          label="Active categories"
+          detail="Active"
+          label="Categories"
           value={workspace.categories.length}
         />
       </section>
 
-      {message ? (
-        <Notice tone={message.tone}>
-          {message.body}
-        </Notice>
-      ) : null}
+      {message ? <Notice tone={message.tone}>{message.body}</Notice> : null}
 
       {bootstrap.errorMessage ? (
-        <Notice tone="warning">
-          {bootstrap.errorMessage}
-        </Notice>
+        <Notice tone="warning">{bootstrap.errorMessage}</Notice>
       ) : null}
 
-      <Card variant="muted">
-        <CardHeader className="flex flex-col gap-3 border-b border-line/60 lg:flex-row lg:items-start lg:justify-between">
-          <div className="space-y-1.5">
-            <CardTitle>Upload and map statement</CardTitle>
-            <CardDescription>
-              Choose a CSV or XLSX file, confirm the headers, and keep the table
-              review as the main place to validate the import.
-            </CardDescription>
-          </div>
-          {preview ? (
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="accent">{preview.sourceFormat.toUpperCase()}</Badge>
-              {preview.primaryMonthKey ? (
-                <Badge variant="outline">
-                  Primary month {preview.primaryMonthKey}
-                </Badge>
+      <section className="grid gap-3.5 xl:grid-cols-[minmax(0,1.55fr)_minmax(20rem,0.9fr)]">
+        <div className="grid gap-3.5">
+          <WorkspaceSection
+            actions={
+              preview ? (
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant="accent">{preview.sourceFormat.toUpperCase()}</Badge>
+                  {preview.primaryMonthKey ? (
+                    <Badge variant="outline">
+                      {formatMonthKeyLabel(
+                        preview.primaryMonthKey,
+                        workspace.locale,
+                        workspace.monthStartDay,
+                      )}
+                    </Badge>
+                  ) : null}
+                </div>
+              ) : null
+            }
+            title="Upload and map statement"
+            variant="muted"
+          >
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <label
+                  className="text-ink block text-sm font-semibold"
+                  htmlFor="statement-import-file"
+                >
+                  Statement file
+                </label>
+                <Input
+                  accept=".csv,.xlsx"
+                  disabled={isParsing || isSaving}
+                  id="statement-import-file"
+                  onChange={(event) =>
+                    void handleFileSelection(event.target.files?.[0] ?? null)
+                  }
+                  type="file"
+                />
+                <p className="text-muted text-[0.8125rem] leading-5">
+                  Required: date, merchant, and either one amount column or debit and credit.
+                </p>
+              </div>
+
+              {isParsing ? (
+                <InfoBlock body="Reading the file locally and preparing the staging review." />
               ) : null}
-            </div>
-          ) : null}
-        </CardHeader>
-        <CardContent className="space-y-5 pt-4">
-          <div className="space-y-2">
-            <label
-              className="text-ink block text-sm font-semibold"
-              htmlFor="statement-import-file"
-            >
-              Statement file
-            </label>
-            <Input
-              accept=".csv,.xlsx"
-              disabled={isParsing || isSaving}
-              id="statement-import-file"
-              onChange={(event) =>
-                void handleFileSelection(event.target.files?.[0] ?? null)
-              }
-              type="file"
-            />
-            <p className="text-muted text-sm leading-6">
-              Required columns: date, merchant, and either one amount column or
-              separate debit and credit columns.
-            </p>
-          </div>
 
-          {isParsing ? (
-            <div className="border-line/70 bg-panel text-muted rounded-xl border px-4 py-3 text-sm leading-6">
-              Reading the statement locally and preparing the staging review.
-            </div>
-          ) : null}
-
-          {preview ? (
-            <>
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                <SummaryMetric label="Rows detected" value={preview.totalRowCount} />
-                <SummaryMetric label="Ready to import" value={preview.readyRowCount} />
-                <SummaryMetric
-                  label="Duplicates skipped"
-                  value={preview.duplicateRowCount}
-                />
-                <SummaryMetric
-                  label="Uncategorized"
-                  value={preview.uncategorizedRowCount}
-                />
-              </div>
-
-              <div className="space-y-3">
-                <div>
-                  <h3 className="text-ink text-base font-semibold tracking-tight">
-                    Column mapping
-                  </h3>
-                  <p className="text-muted mt-1 text-sm leading-6">
-                    Adjust the mapping if the auto-detected headers do not look
-                    right. The staging review updates immediately.
-                  </p>
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {Object.entries(statementImportFieldLabels).map(
-                    ([fieldKey, label]) => {
-                      const field = fieldKey as StatementImportField;
-
-                      return (
-                        <div className="space-y-2" key={field}>
-                          <label
-                            className="text-ink block text-sm font-semibold"
-                            htmlFor={`statement-import-mapping-${field}`}
-                          >
-                            {label}
-                          </label>
-                          <Select
-                            disabled={isSaving}
-                            id={`statement-import-mapping-${field}`}
-                            onChange={(event) => {
-                              setCategoryOverrides({});
-                              setMapping((currentMapping) => ({
-                                ...currentMapping,
-                                [field]:
-                                  event.target.value === "__none__"
-                                    ? null
-                                    : event.target.value,
-                              }));
-                            }}
-                            value={mapping[field] ?? "__none__"}
-                          >
-                            <option value="__none__">Not mapped</option>
-                            {preview.headers.map((header) => (
-                              <option key={header} value={header}>
-                                {header}
-                              </option>
-                            ))}
-                          </Select>
-                        </div>
-                      );
-                    },
-                  )}
-                </div>
-              </div>
-
-              {preview.issues.some((issue) => issue.rowNumber === null) ? (
-                <div className="space-y-2">
-                  <h3 className="text-ink text-base font-semibold tracking-tight">
-                    Blocking review items
-                  </h3>
-                  <div className="space-y-2">
-                    {preview.issues
-                      .filter((issue) => issue.rowNumber === null)
-                      .map((issue) => (
-                        <Notice
-                          className="rounded-xl px-4 py-3"
-                          key={`${issue.field}-${issue.message}`}
-                          tone="warning"
-                        >
-                          {issue.message}
-                        </Notice>
-                      ))}
+              {preview ? (
+                <>
+                  <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-4">
+                    <SummaryMetric
+                      detail="Detected"
+                      label="Rows"
+                      value={preview.totalRowCount}
+                    />
+                    <SummaryMetric
+                      detail="Ready"
+                      label="Importable"
+                      value={preview.readyRowCount}
+                    />
+                    <SummaryMetric
+                      detail="Skipped"
+                      label="Duplicates"
+                      value={preview.duplicateRowCount}
+                    />
+                    <SummaryMetric
+                      detail="Need category"
+                      label="Uncategorized"
+                      value={preview.uncategorizedRowCount}
+                    />
                   </div>
+
+                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                    {Object.entries(statementImportFieldLabels).map(
+                      ([fieldKey, label]) => {
+                        const field = fieldKey as StatementImportField;
+
+                        return (
+                          <div className="space-y-1.5" key={field}>
+                            <label
+                              className="text-ink block text-sm font-semibold"
+                              htmlFor={`statement-import-mapping-${field}`}
+                            >
+                              {label}
+                            </label>
+                            <Select
+                              disabled={isSaving}
+                              id={`statement-import-mapping-${field}`}
+                              onChange={(event) => {
+                                setCategoryOverrides({});
+                                setMapping((currentMapping) => ({
+                                  ...currentMapping,
+                                  [field]:
+                                    event.target.value === "__none__"
+                                      ? null
+                                      : event.target.value,
+                                }));
+                              }}
+                              value={mapping[field] ?? "__none__"}
+                            >
+                              <option value="__none__">Not mapped</option>
+                              {preview.headers.map((header) => (
+                                <option key={header} value={header}>
+                                  {header}
+                                </option>
+                              ))}
+                            </Select>
+                          </div>
+                        );
+                      },
+                    )}
+                  </div>
+
+                  {preview.issues.some((issue) => issue.rowNumber === null) ? (
+                    <div className="space-y-2">
+                      {preview.issues
+                        .filter((issue) => issue.rowNumber === null)
+                        .map((issue) => (
+                          <Notice
+                            className="rounded-[var(--radius-control)] px-3.5 py-3"
+                            key={`${issue.field}-${issue.message}`}
+                            tone="warning"
+                          >
+                            {issue.message}
+                          </Notice>
+                      ))}
+                    </div>
+                  ) : null}
+                </>
+              ) : (
+                <InfoBlock body="No statement staged yet. Upload a CSV or XLSX file to start review." />
+              )}
+            </div>
+          </WorkspaceSection>
+
+          {preview ? (
+            <WorkspaceSection
+              actions={
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    disabled={!canSaveImport}
+                    onClick={() => void handleCommitImport()}
+                    variant="primary"
+                  >
+                    {isSaving ? "Saving import..." : "Save import"}
+                  </Button>
+                  <Button
+                    disabled={isSaving}
+                    onClick={() => {
+                      setImportData(null);
+                      setMapping(createStatementImportMapping([]));
+                      setCategoryOverrides({});
+                      setMessage(null);
+                    }}
+                    size="sm"
+                    variant="secondary"
+                  >
+                    Clear staging
+                  </Button>
                 </div>
-              ) : null}
-            </>
-          ) : (
-            <div className="border-line/70 bg-panel text-muted rounded-xl border px-4 py-4 text-sm leading-6">
-              No statement staged yet. Upload a CSV or XLSX file to begin the
-              local review flow.
-            </div>
-          )}
-        </CardContent>
-      </Card>
+              }
+              title="Staging review"
+              variant="elevated"
+            >
+              <div className="space-y-3">
+                <div className="text-muted hidden grid-cols-[auto_minmax(0,0.85fr)_minmax(0,1.4fr)_auto_minmax(0,1.1fr)_minmax(0,0.9fr)_minmax(0,0.8fr)] px-3.5 text-[0.62rem] font-semibold uppercase tracking-[0.16em] xl:grid">
+                  <span>Row</span>
+                  <span>Date</span>
+                  <span>Merchant</span>
+                  <span>Amount</span>
+                  <span>Category</span>
+                  <span>Match</span>
+                  <span>Status</span>
+                </div>
 
-      {preview ? (
-        <Card variant="elevated">
-          <CardHeader className="flex flex-col gap-4 border-b border-line/60 lg:flex-row lg:items-start lg:justify-between">
-            <div className="space-y-1.5">
-              <CardTitle>Staging review</CardTitle>
-              <CardDescription>
-                Ready rows will be imported. Duplicate and invalid rows remain
-                visible so the import stays explicit.
-              </CardDescription>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <Button
-                disabled={!canSaveImport}
-                onClick={() => void handleCommitImport()}
-                variant="primary"
-              >
-                {isSaving ? "Saving import..." : "Save import"}
-              </Button>
-              <Button
-                disabled={isSaving}
-                onClick={() => {
-                  setImportData(null);
-                  setMapping(createStatementImportMapping([]));
-                  setCategoryOverrides({});
-                  setMessage(null);
-                }}
-                variant="secondary"
-              >
-                Clear staging
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4 pt-4">
-            <div className="text-muted hidden grid-cols-[auto_minmax(0,0.9fr)_minmax(0,1.4fr)_auto_minmax(0,1.1fr)_minmax(0,0.9fr)_minmax(0,0.8fr)] px-4 text-xs font-semibold uppercase tracking-[0.16em] xl:grid">
-              <span>Row</span>
-              <span>Date</span>
-              <span>Merchant</span>
-              <span>Amount</span>
-              <span>Category</span>
-              <span>Match</span>
-              <span>Status</span>
-            </div>
+                <div className="border-line/80 overflow-hidden rounded-[var(--radius-panel)] border">
+                  <div className="max-h-[42rem] overflow-auto">
+                    <table className="min-w-full border-collapse text-left text-sm">
+                      <thead className="bg-panel-strong/45 text-muted xl:hidden">
+                        <tr>
+                          <th className="px-3.5 py-2.5 font-semibold">Review rows</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-line/70 bg-panel divide-y">
+                        {preview.rows.map((row) => {
+                          const transaction = row.transaction;
+                          const availableCategories = workspace.categories.filter(
+                            (category) => category.kind === transaction?.direction,
+                          );
+                          const selectedCategoryId =
+                            categoryOverrides[row.rowNumber] ??
+                            transaction?.categoryId ??
+                            "__uncategorized__";
+                          const selectedCategoryForRule =
+                            selectedCategoryId === "__uncategorized__"
+                              ? null
+                              : selectedCategoryId;
+                          const canSaveRuleFromCorrection =
+                            row.status === "ready" &&
+                            !!transaction &&
+                            !!selectedCategoryForRule &&
+                            (transaction.matchedRuleId === null ||
+                              selectedCategoryForRule !== transaction.categoryId);
 
-            <div className="border-line/80 overflow-hidden rounded-xl border">
-              <div className="max-h-[38rem] overflow-auto">
-                <table className="min-w-full border-collapse text-left text-sm">
-                  <thead className="bg-panel-strong/45 text-muted xl:hidden">
-                    <tr>
-                      <th className="px-4 py-3 font-semibold">Review rows</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-line/70 bg-panel divide-y">
-                    {preview.rows.map((row) => {
-                      const transaction = row.transaction;
-                      const availableCategories = workspace.categories.filter(
-                        (category) => category.kind === transaction?.direction,
-                      );
-                      const selectedCategoryId =
-                        categoryOverrides[row.rowNumber] ??
-                        transaction?.categoryId ??
-                        "__uncategorized__";
-                      const selectedCategoryForRule =
-                        selectedCategoryId === "__uncategorized__"
-                          ? null
-                          : selectedCategoryId;
-                      const canSaveRuleFromCorrection =
-                        row.status === "ready" &&
-                        !!transaction &&
-                        !!selectedCategoryForRule &&
-                        (transaction.matchedRuleId === null ||
-                          selectedCategoryForRule !== transaction.categoryId);
+                          return (
+                            <tr
+                              aria-label={`Staged import row ${row.rowNumber} for ${
+                                transaction?.merchantRaw ??
+                                row.raw[mapping.merchant ?? ""] ??
+                                "Needs review"
+                              }`}
+                              className={cn(
+                                row.status !== "ready" && "bg-panel-strong/16",
+                              )}
+                              key={row.rowNumber}
+                            >
+                              <td className="px-3.5 py-3 align-top xl:hidden">
+                                <div className="space-y-3">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <Badge variant={getRowStatusBadgeVariant(row.status)}>
+                                      {row.status === "ready"
+                                        ? "Ready"
+                                        : row.status === "duplicate"
+                                          ? "Duplicate"
+                                          : "Needs review"}
+                                    </Badge>
+                                    <Badge variant="outline">Row {row.rowNumber}</Badge>
+                                  </div>
+                                  <div className="space-y-0.5">
+                                    <p className="text-ink text-sm font-semibold tracking-tight">
+                                      {transaction?.merchantRaw ??
+                                        row.raw[mapping.merchant ?? ""] ??
+                                        "Needs review"}
+                                    </p>
+                                    <p className="text-muted text-[0.8125rem] leading-5">
+                                      {transaction?.date ?? "Needs review"} •{" "}
+                                      {transaction
+                                        ? formatMinorUnits(transaction.amount)
+                                        : "—"}
+                                    </p>
+                                  </div>
+                                  <div className="space-y-2">
+                                    {transaction ? (
+                                      <>
+                                        <Select
+                                          disabled={row.status !== "ready" || isSaving}
+                                          onChange={(event) =>
+                                            setCategoryOverrides((currentOverrides) => ({
+                                              ...currentOverrides,
+                                              [row.rowNumber]:
+                                                event.target.value === "__uncategorized__"
+                                                  ? null
+                                                  : event.target.value,
+                                            }))
+                                          }
+                                          value={selectedCategoryId}
+                                        >
+                                          <option value="__uncategorized__">
+                                            Uncategorized
+                                          </option>
+                                          {availableCategories.map((category) => (
+                                            <option key={category.id} value={category.id}>
+                                              {category.name}
+                                            </option>
+                                          ))}
+                                        </Select>
+                                        {canSaveRuleFromCorrection ? (
+                                          <Button
+                                            disabled={savingRuleRowNumber === row.rowNumber}
+                                            onClick={() =>
+                                              void handleSaveRuleFromCorrection(
+                                                row.rowNumber,
+                                                selectedCategoryForRule,
+                                                transaction.merchantRaw,
+                                                transaction,
+                                              )
+                                            }
+                                            size="sm"
+                                            variant="secondary"
+                                          >
+                                            {savingRuleRowNumber === row.rowNumber
+                                              ? "Saving rule..."
+                                              : "Save exact rule"}
+                                          </Button>
+                                        ) : null}
+                                      </>
+                                    ) : (
+                                      <p className="text-muted text-sm">Needs review</p>
+                                    )}
+                                  </div>
+                                  <div className="space-y-1">
+                                    {transaction?.matchedRuleLabel ? (
+                                      <>
+                                        <Badge variant="outline">Rule match</Badge>
+                                        <p className="text-muted text-[0.75rem] leading-4">
+                                          {transaction.matchedRuleLabel}
+                                        </p>
+                                      </>
+                                    ) : (
+                                      <p className="text-muted text-[0.75rem] leading-4">
+                                        No saved rule
+                                      </p>
+                                    )}
+                                    {row.issues.map((issue) => (
+                                      <p
+                                        className="text-muted text-[0.75rem] leading-4"
+                                        key={`${row.rowNumber}-${issue.field}-${issue.message}`}
+                                      >
+                                        {issue.message}
+                                      </p>
+                                    ))}
+                                  </div>
+                                </div>
+                              </td>
 
-                      return (
-                        <tr
-                          aria-label={`Staged import row ${row.rowNumber} for ${
-                            transaction?.merchantRaw ??
-                            row.raw[mapping.merchant ?? ""] ??
-                            "Needs review"
-                          }`}
-                          className={cn(
-                            row.status !== "ready" && "bg-panel-strong/20",
-                          )}
-                          key={row.rowNumber}
-                        >
-                          <td className="px-4 py-3 align-top xl:hidden">
-                            <div className="space-y-3">
-                              <div className="flex flex-wrap items-center gap-2">
-                                <Badge variant={getRowStatusBadgeVariant(row.status)}>
-                                  {row.status === "ready"
-                                    ? "Ready"
-                                    : row.status === "duplicate"
-                                      ? "Duplicate"
-                                      : "Needs review"}
-                                </Badge>
-                                <Badge variant="outline">Row {row.rowNumber}</Badge>
-                              </div>
-                              <div className="space-y-1">
-                                <p className="text-ink font-medium">
-                                  {transaction?.merchantRaw ??
-                                    row.raw[mapping.merchant ?? ""] ??
-                                    "Needs review"}
-                                </p>
-                                <p className="text-muted text-sm leading-5">
-                                  {transaction?.date ?? "Needs review"} •{" "}
-                                  {transaction
-                                    ? formatMinorUnits(transaction.amount)
-                                    : "—"}
-                                </p>
-                              </div>
-                              <div className="space-y-2">
+                              <td className="text-muted hidden px-3.5 py-3 align-top xl:table-cell">
+                                {row.rowNumber}
+                              </td>
+                              <td className="text-muted hidden px-3.5 py-3 align-top xl:table-cell">
+                                {transaction?.date ?? "Needs review"}
+                              </td>
+                              <td className="hidden px-3.5 py-3 align-top xl:table-cell">
+                                <div className="space-y-0.5">
+                                  <p className="text-ink text-sm font-semibold tracking-tight">
+                                    {transaction?.merchantRaw ??
+                                      row.raw[mapping.merchant ?? ""] ??
+                                      "Needs review"}
+                                  </p>
+                                  {transaction ? (
+                                    <p className="text-muted text-[0.75rem] uppercase tracking-[0.14em]">
+                                      {transaction.merchantNormalized}
+                                    </p>
+                                  ) : null}
+                                </div>
+                              </td>
+                              <td className="text-muted hidden px-3.5 py-3 align-top xl:table-cell">
+                                {transaction ? formatMinorUnits(transaction.amount) : "—"}
+                              </td>
+                              <td className="hidden px-3.5 py-3 align-top xl:table-cell">
                                 {transaction ? (
-                                  <>
+                                  <div className="space-y-2">
                                     <Select
                                       disabled={row.status !== "ready" || isSaving}
                                       onChange={(event) =>
@@ -643,183 +786,104 @@ export function ImportsScreen() {
                                         variant="secondary"
                                       >
                                         {savingRuleRowNumber === row.rowNumber
-                                          ? "Saving rule..."
-                                          : "Save as exact rule"}
+                                          ? "Saving..."
+                                          : "Save exact rule"}
                                       </Button>
                                     ) : null}
-                                  </>
+                                  </div>
                                 ) : (
-                                  <p className="text-muted text-sm">Needs review</p>
+                                  <span className="text-muted">—</span>
                                 )}
-                              </div>
-                              <div className="space-y-1">
+                              </td>
+                              <td className="hidden px-3.5 py-3 align-top xl:table-cell">
                                 {transaction?.matchedRuleLabel ? (
-                                  <>
+                                  <div className="space-y-1">
                                     <Badge variant="outline">Rule match</Badge>
-                                    <p className="text-muted text-xs leading-5">
+                                    <p className="text-muted text-[0.75rem] leading-4">
                                       {transaction.matchedRuleLabel}
                                     </p>
-                                  </>
+                                  </div>
                                 ) : (
-                                  <p className="text-muted text-xs leading-5">
+                                  <p className="text-muted text-[0.75rem] leading-4">
                                     No saved rule
                                   </p>
                                 )}
-                                {row.issues.map((issue) => (
-                                  <p
-                                    className="text-muted text-xs leading-5"
-                                    key={`${row.rowNumber}-${issue.field}-${issue.message}`}
+                              </td>
+                              <td className="hidden px-3.5 py-3 align-top xl:table-cell">
+                                <div className="space-y-2">
+                                  <Badge
+                                    variant={getRowStatusBadgeVariant(row.status)}
                                   >
-                                    {issue.message}
-                                  </p>
-                                ))}
-                              </div>
-                            </div>
-                          </td>
-
-                          <td className="text-muted hidden px-4 py-3 align-top xl:table-cell">
-                            {row.rowNumber}
-                          </td>
-                          <td className="text-muted hidden px-4 py-3 align-top xl:table-cell">
-                            {transaction?.date ?? "Needs review"}
-                          </td>
-                          <td className="hidden px-4 py-3 align-top xl:table-cell">
-                            <div className="space-y-1">
-                              <p className="text-ink font-medium">
-                                {transaction?.merchantRaw ??
-                                  row.raw[mapping.merchant ?? ""] ??
-                                  "Needs review"}
-                              </p>
-                              {transaction ? (
-                                <p className="text-muted text-xs uppercase tracking-[0.14em]">
-                                  {transaction.merchantNormalized}
-                                </p>
-                              ) : null}
-                            </div>
-                          </td>
-                          <td className="text-muted hidden px-4 py-3 align-top xl:table-cell">
-                            {transaction ? formatMinorUnits(transaction.amount) : "—"}
-                          </td>
-                          <td className="hidden px-4 py-3 align-top xl:table-cell">
-                            {transaction ? (
-                              <div className="space-y-2">
-                                <Select
-                                  disabled={row.status !== "ready" || isSaving}
-                                  onChange={(event) =>
-                                    setCategoryOverrides((currentOverrides) => ({
-                                      ...currentOverrides,
-                                      [row.rowNumber]:
-                                        event.target.value === "__uncategorized__"
-                                          ? null
-                                          : event.target.value,
-                                    }))
-                                  }
-                                  value={selectedCategoryId}
-                                >
-                                  <option value="__uncategorized__">
-                                    Uncategorized
-                                  </option>
-                                  {availableCategories.map((category) => (
-                                    <option key={category.id} value={category.id}>
-                                      {category.name}
-                                    </option>
+                                    {row.status === "ready"
+                                      ? "Ready"
+                                      : row.status === "duplicate"
+                                        ? "Duplicate"
+                                        : "Needs review"}
+                                  </Badge>
+                                  {row.issues.map((issue) => (
+                                    <p
+                                      className="text-muted max-w-xs text-[0.75rem] leading-4"
+                                      key={`${row.rowNumber}-${issue.field}-${issue.message}`}
+                                    >
+                                      {issue.message}
+                                    </p>
                                   ))}
-                                </Select>
-                                {canSaveRuleFromCorrection ? (
-                                  <Button
-                                    disabled={savingRuleRowNumber === row.rowNumber}
-                                    onClick={() =>
-                                      void handleSaveRuleFromCorrection(
-                                        row.rowNumber,
-                                        selectedCategoryForRule,
-                                        transaction.merchantRaw,
-                                        transaction,
-                                      )
-                                    }
-                                    size="sm"
-                                    variant="secondary"
-                                  >
-                                    {savingRuleRowNumber === row.rowNumber
-                                      ? "Saving rule..."
-                                      : "Save as exact rule"}
-                                  </Button>
-                                ) : null}
-                              </div>
-                            ) : (
-                              <span className="text-muted">—</span>
-                            )}
-                          </td>
-                          <td className="hidden px-4 py-3 align-top xl:table-cell">
-                            {transaction?.matchedRuleLabel ? (
-                              <div className="space-y-1">
-                                <Badge variant="outline">Rule match</Badge>
-                                <p className="text-muted text-xs leading-5">
-                                  {transaction.matchedRuleLabel}
-                                </p>
-                              </div>
-                            ) : (
-                              <p className="text-muted text-xs leading-5">
-                                No saved rule
-                              </p>
-                            )}
-                          </td>
-                          <td className="hidden px-4 py-3 align-top xl:table-cell">
-                            <div className="space-y-2">
-                              <Badge
-                                variant={getRowStatusBadgeVariant(row.status)}
-                              >
-                                {row.status === "ready"
-                                  ? "Ready"
-                                  : row.status === "duplicate"
-                                    ? "Duplicate"
-                                    : "Needs review"}
-                              </Badge>
-                              {row.issues.map((issue) => (
-                                <p
-                                  className="text-muted max-w-xs text-xs leading-5"
-                                  key={`${row.rowNumber}-${issue.field}-${issue.message}`}
-                                >
-                                  {issue.message}
-                                </p>
-                              ))}
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-      ) : null}
+            </WorkspaceSection>
+          ) : null}
+        </div>
 
-      <section className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
-        <Card>
-          <CardHeader>
-            <CardTitle>Import history</CardTitle>
-            <CardDescription>
-              Recent local statement imports, with rollback for committed
-              non-demo imports.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
+        <div className="grid gap-3.5 xl:sticky xl:top-[4.5rem] xl:self-start">
+          <WorkspaceSection title="Workspace snapshot" variant="muted">
+            <List>
+              <HistoryMetaRow
+                label="Saved rules"
+                secondary="Prefill"
+                value={workspace.rules.length}
+              />
+              <HistoryMetaRow
+                label="Import history"
+                secondary="Records"
+                value={workspace.statementImports.length}
+              />
+              <HistoryMetaRow
+                label="Known fingerprints"
+                secondary="Duplicate check"
+                value={workspace.transactions.length}
+              />
+              <HistoryMetaRow
+                label="Categories"
+                secondary="Active"
+                value={workspace.categories.length}
+              />
+            </List>
+          </WorkspaceSection>
+
+          <WorkspaceSection
+            title="Import history"
+          >
             {workspace.statementImports.length === 0 ? (
-              <div className="border-line/70 bg-panel-strong/35 text-muted rounded-xl border px-4 py-4 text-sm leading-6">
-                No statement imports saved yet.
-              </div>
+              <InfoBlock body="No saved imports yet." />
             ) : (
               <List>
                 {workspace.statementImports.map((statementImport) => (
                   <ListRow
                     aria-label={`${statementImport.fileName} import record`}
-                    className="gap-4"
+                    className="gap-3"
                     key={statementImport.id}
                   >
-                    <div className="min-w-0 flex-1 space-y-1.5">
+                    <div className="min-w-0 flex-1 space-y-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <p className="text-ink truncate text-sm font-semibold tracking-tight sm:text-base">
+                        <p className="text-ink truncate text-sm font-semibold tracking-tight">
                           {statementImport.fileName}
                         </p>
                         <Badge
@@ -828,15 +892,15 @@ export function ImportsScreen() {
                           {statementImport.status}
                         </Badge>
                       </div>
-                      <p className="text-muted text-sm leading-5">
+                      <p className="text-muted text-[0.8125rem] leading-5">
                         {formatMonthKeyLabel(
                           statementImport.monthKey,
                           workspace.locale,
                           workspace.monthStartDay,
                         )}{" "}
-                        • imported {formatDateTime(statementImport.importedAt)}
+                        • {formatDateTime(statementImport.importedAt)}
                       </p>
-                      <p className="text-muted text-sm leading-5">
+                      <p className="text-muted text-[0.75rem] leading-4">
                         {statementImport.importedRowCount} imported •{" "}
                         {statementImport.duplicateRowCount} duplicates •{" "}
                         {statementImport.warningCount} warnings •{" "}
@@ -860,7 +924,7 @@ export function ImportsScreen() {
                         >
                           {rollingBackImportId === statementImport.id
                             ? "Rolling back..."
-                            : "Roll back import"}
+                            : "Roll back"}
                         </Button>
                       ) : null}
 
@@ -879,7 +943,7 @@ export function ImportsScreen() {
                         >
                           {deletingImportId === statementImport.id
                             ? "Deleting..."
-                            : "Delete record"}
+                            : "Delete"}
                         </Button>
                       ) : null}
                     </div>
@@ -887,31 +951,16 @@ export function ImportsScreen() {
                 ))}
               </List>
             )}
-          </CardContent>
-        </Card>
+          </WorkspaceSection>
 
-        <Card variant="muted">
-          <CardHeader>
-            <CardTitle>Import safety rules</CardTitle>
-            <CardDescription>
-              Keep these constraints visible while reviewing staged rows.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm leading-6">
-            <div className="border-line/70 bg-panel rounded-xl border px-4 py-3">
-              Files are parsed locally in the browser and never sent to an
-              external service.
+          <WorkspaceSection title="Import safety">
+            <div className="space-y-3">
+              <InfoBlock body="Files are parsed locally in the browser and never sent to an external service." />
+              <InfoBlock body="Duplicate checks use normalized merchant, date, direction, and amount fingerprints." />
+              <InfoBlock body="Saved rules can prefill categories, but every staged row stays visible before import." />
             </div>
-            <div className="border-line/70 bg-panel rounded-xl border px-4 py-3">
-              Duplicate detection uses normalized merchant, date, direction, and
-              amount fingerprints.
-            </div>
-            <div className="border-line/70 bg-panel rounded-xl border px-4 py-3">
-              Saved rules can prefill categories, but every staged row stays
-              visible before save.
-            </div>
-          </CardContent>
-        </Card>
+          </WorkspaceSection>
+        </div>
       </section>
     </div>
   );

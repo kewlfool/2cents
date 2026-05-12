@@ -14,6 +14,28 @@
   --success: #34694a;
   --font-sans-stack: "Avenir Next", "Segoe UI Variable", "Segoe UI", sans-serif;
   --font-mono-stack: "SF Mono", "SFMono-Regular", "IBM Plex Mono", monospace;
+  --radius-panel: 0.85rem;
+  --radius-control: 0.7rem;
+  --radius-dock: 0.8rem;
+  --space-page-tight: 0.75rem;
+  --space-page: 1rem;
+  --space-page-wide: 1.25rem;
+  --space-stack: 0.875rem;
+  --space-card: 1rem;
+  --space-card-compact: 0.875rem;
+  --space-row: 0.75rem;
+  --control-height: 2.25rem;
+  --control-height-sm: 2rem;
+  --textarea-min-height: 6rem;
+  --mobile-dock-gap: 0.5rem;
+  --mobile-dock-offset: 5.5rem;
+  --tracking-kicker: 0.16em;
+  --leading-ui: 1.25;
+  --leading-copy: 1.45;
+  --shadow-panel: 0 14px 34px -30px rgba(31, 27, 22, 0.34);
+  --shadow-accent: 0 12px 30px -22px rgba(45, 99, 95, 0.72);
+  --shadow-floating: 0 14px 28px -24px rgba(31, 27, 22, 0.28);
+  --shadow-skip-link: 0 18px 32px -24px rgba(31, 27, 22, 0.45);
 }
 
 @theme inline {
@@ -39,7 +61,7 @@
 html {
   min-height: 100%;
   background-color: var(--canvas);
-  scroll-padding-top: 1.25rem;
+  scroll-padding-top: 0.85rem;
 }
 
 body {
@@ -53,7 +75,17 @@ body {
     linear-gradient(180deg, #faf6ee 0%, var(--canvas) 38%, #f3ecdf 100%);
   color: var(--ink);
   font-family: var(--font-sans-stack);
+  line-height: var(--leading-copy);
   text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  line-height: 1.15;
 }
 
 .skip-link {
@@ -63,12 +95,12 @@ body {
   z-index: 80;
   transform: translateY(-150%);
   border: 1px solid var(--line);
-  border-radius: 0.9rem;
+  border-radius: var(--radius-control);
   background: var(--panel);
   color: var(--ink);
   font-weight: 600;
-  padding: 0.7rem 1rem;
-  box-shadow: 0 18px 32px -24px rgba(31, 27, 22, 0.45);
+  padding: 0.65rem 0.9rem;
+  box-shadow: var(--shadow-skip-link);
   transition: transform 140ms ease;
 }
 
@@ -81,6 +113,7 @@ input,
 select,
 textarea {
   font: inherit;
+  line-height: var(--leading-ui);
 }
 
 a {

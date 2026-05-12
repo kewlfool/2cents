@@ -1,35 +1,63 @@
-import type { ReactNode } from "react";
+import { cva, type VariantProps } from "class-variance-authority";
+import type { HTMLAttributes, ReactNode } from "react";
 
-type PageHeaderProps = {
+import { cn } from "@/lib/utils";
+
+const pageHeaderVariants = cva(
+  "border-line/70 flex flex-col border-b sm:flex-row sm:justify-between",
+  {
+    defaultVariants: {
+      density: "compact",
+    },
+    variants: {
+      density: {
+        compact:
+          "gap-[var(--space-stack)] pb-[var(--space-card-compact)] sm:items-start",
+        roomy: "gap-[var(--space-page)] pb-[var(--space-page)] sm:items-end",
+      },
+    },
+  },
+);
+
+type PageHeaderProps = HTMLAttributes<HTMLElement> &
+  VariantProps<typeof pageHeaderVariants> & {
   badge?: ReactNode;
-  description: string;
+  description?: ReactNode;
   eyebrow?: string;
   title: string;
 };
 
 export function PageHeader({
   badge,
+  className,
+  density,
   description,
   eyebrow,
   title,
+  ...props
 }: PageHeaderProps) {
   return (
-    <header className="border-line/70 flex flex-col gap-4 border-b pb-4 sm:flex-row sm:items-end sm:justify-between">
-      <div className="max-w-3xl space-y-2">
+    <header
+      className={cn(pageHeaderVariants({ className, density }))}
+      {...props}
+    >
+      <div className="min-w-0 max-w-3xl space-y-1.5">
         {eyebrow ? (
-          <p className="text-accent text-xs font-semibold tracking-[0.18em] uppercase">
+          <p className="text-accent text-[0.68rem] font-semibold tracking-[var(--tracking-kicker)] uppercase">
             {eyebrow}
           </p>
         ) : null}
-        <div className="space-y-1.5">
-          <h1 className="text-ink text-2xl font-semibold tracking-tight sm:text-3xl">
+        <div className="space-y-1">
+          <h1 className="text-ink text-xl font-semibold tracking-tight sm:text-2xl">
             {title}
           </h1>
-          <p className="text-muted max-w-2xl text-sm leading-6">{description}</p>
+          {description ? (
+            <p className="text-muted max-w-2xl text-sm leading-5">{description}</p>
+          ) : null}
         </div>
       </div>
       {badge ? (
-        <div className="shrink-0 self-start sm:self-auto">{badge}</div>
+        <div className="shrink-0 self-start">{badge}</div>
       ) : null}
     </header>
   );

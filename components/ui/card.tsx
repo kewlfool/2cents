@@ -3,16 +3,16 @@ import type { HTMLAttributes } from "react";
 
 import { cn } from "@/lib/utils";
 
-const cardVariants = cva("rounded-2xl border", {
+const cardVariants = cva("border", {
   defaultVariants: {
     variant: "default",
   },
   variants: {
     variant: {
-      default: "border-line/70 bg-panel/96",
+      default: "border-line/70 rounded-[var(--radius-panel)] bg-panel/96",
       elevated:
-        "border-line/80 bg-panel shadow-[0_18px_45px_-34px_rgba(31,27,22,0.42)]",
-      muted: "border-line/70 bg-panel-strong/18",
+        "border-line/80 rounded-[var(--radius-panel)] bg-panel shadow-[var(--shadow-panel)]",
+      muted: "border-line/70 rounded-[var(--radius-panel)] bg-panel-strong/18",
     },
   },
 });
@@ -32,11 +32,40 @@ export function Card({
   );
 }
 
+const cardHeaderVariants = cva("", {
+  defaultVariants: {
+    density: "default",
+    divider: false,
+  },
+  variants: {
+    density: {
+      compact:
+        "space-y-1 px-[var(--space-card)] py-[var(--space-card-compact)]",
+      default: "space-y-1.5 p-[var(--space-card)]",
+      roomy: "space-y-1.5 p-[var(--space-page)]",
+    },
+    divider: {
+      true: "border-b border-line/60",
+      false: "",
+    },
+  },
+});
+
+type CardHeaderProps = HTMLAttributes<HTMLDivElement> &
+  VariantProps<typeof cardHeaderVariants>;
+
 export function CardHeader({
   className,
+  density,
+  divider,
   ...props
-}: HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("space-y-1.5 p-5", className)} {...props} />;
+}: CardHeaderProps) {
+  return (
+    <div
+      className={cn(cardHeaderVariants({ className, density, divider }))}
+      {...props}
+    />
+  );
 }
 
 export function CardTitle({
@@ -45,7 +74,7 @@ export function CardTitle({
 }: HTMLAttributes<HTMLHeadingElement>) {
   return (
     <h2
-      className={cn("text-ink text-lg font-semibold tracking-tight", className)}
+      className={cn("text-ink text-base font-semibold tracking-tight", className)}
       {...props}
     />
   );
@@ -56,7 +85,10 @@ export function CardDescription({
   ...props
 }: HTMLAttributes<HTMLParagraphElement>) {
   return (
-    <p className={cn("text-muted text-sm leading-5", className)} {...props} />
+    <p
+      className={cn("text-muted text-[0.8125rem] leading-5", className)}
+      {...props}
+    />
   );
 }
 
@@ -64,5 +96,10 @@ export function CardContent({
   className,
   ...props
 }: HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("px-5 pb-5", className)} {...props} />;
+  return (
+    <div
+      className={cn("px-[var(--space-card)] pb-[var(--space-card)]", className)}
+      {...props}
+    />
+  );
 }

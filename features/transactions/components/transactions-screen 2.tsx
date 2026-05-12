@@ -1,7 +1,6 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import { useForm, type UseFormReturn } from "react-hook-form";
 
@@ -9,7 +8,13 @@ import { PageHeader } from "@/components/layout/page-header";
 import { useAppBootstrap } from "@/components/providers/app-bootstrap-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { List, ListRow } from "@/components/ui/list";
 import { Notice } from "@/components/ui/notice";
@@ -161,94 +166,19 @@ function resolveSourceLabel(
   return sourceImport?.fileName ?? "Imported statement";
 }
 
-function SummaryMetric(props: {
-  detail: string;
+function SummaryCard(props: {
+  description: string;
   label: string;
   value: string;
 }) {
   return (
-    <div className="border-line/70 bg-panel/96 rounded-[var(--radius-panel)] border px-3 py-2">
+    <div className="border-line/70 bg-panel/96 space-y-1 rounded-xl border px-4 py-3">
       <p className="text-muted text-xs font-semibold uppercase tracking-[0.14em]">
         {props.label}
       </p>
-      <div className="mt-1 flex items-end justify-between gap-3">
-        <p className="text-ink text-base font-semibold tracking-tight">
-          {props.value}
-        </p>
-        <p className="text-muted text-right text-[0.75rem] leading-4">
-          {props.detail}
-        </p>
-      </div>
+      <p className="text-ink text-xl font-semibold tracking-tight">{props.value}</p>
+      <p className="text-muted text-sm leading-5">{props.description}</p>
     </div>
-  );
-}
-
-function WorkspaceSection(props: {
-  actions?: ReactNode;
-  children: ReactNode;
-  description?: string;
-  title: string;
-  variant?: "default" | "elevated" | "muted";
-}) {
-  const variantClass =
-    props.variant === "elevated"
-      ? "shadow-[var(--shadow-panel)]"
-      : props.variant === "muted"
-        ? "bg-panel-strong/18"
-        : "bg-panel/96";
-
-  return (
-    <section
-      className={cn(
-        "border-line/70 rounded-[var(--radius-panel)] border",
-        variantClass,
-      )}
-    >
-      <div className="border-line/60 flex items-start justify-between gap-3 border-b px-[var(--space-card)] py-[var(--space-card-compact)]">
-        <div className="min-w-0">
-          <h2 className="text-ink text-sm font-semibold tracking-tight">
-            {props.title}
-          </h2>
-          {props.description ? (
-            <p className="text-muted mt-1 text-[0.8125rem] leading-5">
-              {props.description}
-            </p>
-          ) : null}
-        </div>
-        {props.actions ? <div className="shrink-0">{props.actions}</div> : null}
-      </div>
-      <div className="p-[var(--space-card)]">{props.children}</div>
-    </section>
-  );
-}
-
-function InlineToggle(props: {
-  checked: boolean;
-  label: string;
-  onChange: (checked: boolean) => void;
-}) {
-  return (
-    <label className="border-line/70 bg-panel flex min-h-[var(--control-height)] items-center gap-3 rounded-[var(--radius-control)] border px-3 text-sm">
-      <input
-        checked={props.checked}
-        className="border-line text-accent focus:ring-accent size-4 rounded border"
-        onChange={(event) => props.onChange(event.target.checked)}
-        type="checkbox"
-      />
-      <span className="text-ink">{props.label}</span>
-    </label>
-  );
-}
-
-function LedgerMetaRow(props: { label: string; secondary: string; value: ReactNode }) {
-  return (
-    <ListRow className="items-center justify-between gap-4">
-      <div className="min-w-0">
-        <p className="text-ink text-sm font-semibold tracking-tight">{props.label}</p>
-        <p className="text-muted text-[0.75rem] leading-4">{props.secondary}</p>
-      </div>
-      <div className="text-ink shrink-0 text-sm font-semibold">{props.value}</div>
-    </ListRow>
   );
 }
 
@@ -270,10 +200,10 @@ function TransactionRow(props: {
     <ListRow
       aria-label={`${props.transaction.merchantRaw} transaction row`}
       className={cn(
-        "items-start py-2 transition",
+        "items-start transition",
         props.isSelected
-          ? "bg-accent-soft/45"
-          : "bg-transparent hover:bg-panel-strong/16",
+          ? "bg-accent-soft/50"
+          : "bg-transparent hover:bg-panel-strong/18",
       )}
     >
       <div className="pt-0.5">
@@ -286,24 +216,24 @@ function TransactionRow(props: {
         />
       </div>
 
-      <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-2 xl:grid-cols-[minmax(0,1.8fr)_minmax(0,0.9fr)_minmax(0,1fr)_auto_auto] xl:items-center">
-        <div className="min-w-0 space-y-0.5">
-          <p className="text-ink truncate text-sm font-semibold tracking-tight">
+      <div className="grid min-w-0 flex-1 gap-3 xl:grid-cols-[minmax(0,1.7fr)_minmax(0,0.9fr)_minmax(0,1fr)_auto_auto] xl:items-center">
+        <div className="min-w-0 space-y-1.5">
+          <p className="text-ink truncate text-sm font-semibold tracking-tight sm:text-base">
             {props.transaction.merchantRaw}
           </p>
           {props.transaction.notes ? (
-            <p className="text-muted text-[0.75rem] leading-4">
+            <p className="text-muted text-sm leading-5">
               {props.transaction.notes}
             </p>
           ) : null}
         </div>
 
-        <div className="order-3 text-muted text-[0.75rem] leading-4 xl:order-none">
+        <div className="text-muted text-sm leading-5">
           <p>{formatDateLabel(props.transaction.date)}</p>
           <p>{props.sourceLabel}</p>
         </div>
 
-        <div className="order-5 col-span-2 flex flex-wrap items-center gap-1.5 xl:order-none xl:col-span-1">
+        <div className="flex flex-wrap items-center gap-2">
           <Badge variant={categoryPresentation.tone}>
             {categoryPresentation.label}
           </Badge>
@@ -314,14 +244,14 @@ function TransactionRow(props: {
             <Badge variant="warning">Ignored</Badge>
           ) : null}
           {props.transaction.transferLike ? (
-            <Badge variant="default">Transfer</Badge>
+            <Badge variant="default">Transfer-like</Badge>
           ) : null}
         </div>
 
-        <div className="flex items-start justify-end gap-3 xl:justify-end">
+        <div className="flex items-center gap-3 xl:justify-end">
           <p
             className={cn(
-              "text-sm font-semibold tracking-tight",
+              "text-base font-semibold tracking-tight",
               props.transaction.direction === "income"
                 ? "text-success"
                 : "text-ink",
@@ -335,7 +265,7 @@ function TransactionRow(props: {
           </p>
         </div>
 
-        <div className="order-4 flex items-center justify-end gap-3 xl:order-none xl:justify-end">
+        <div className="flex items-center justify-between gap-3 xl:justify-end">
           <Button onClick={props.onEdit} size="sm" variant="secondary">
             Edit
           </Button>
@@ -345,34 +275,9 @@ function TransactionRow(props: {
   );
 }
 
-function EditorFlag(props: {
-  checked: boolean;
-  description: string;
-  label: string;
-  onChange: (event: { target: HTMLInputElement; type?: string }) => void;
-}) {
-  return (
-    <label className="border-line/70 bg-panel-strong/25 flex items-start gap-3 rounded-[var(--radius-control)] border px-3.5 py-3">
-      <input
-        checked={props.checked}
-        className="border-line text-accent focus:ring-accent mt-0.5 size-4 rounded border"
-        onChange={props.onChange}
-        type="checkbox"
-      />
-      <span>
-        <span className="text-ink block text-sm font-semibold">{props.label}</span>
-        <span className="text-muted block text-[0.8125rem] leading-5">
-          {props.description}
-        </span>
-      </span>
-    </label>
-  );
-}
-
-function TransactionEditorPanel(props: {
+function TransactionEditorCard(props: {
   activeCategories: BudgetCategory[];
   allCategories: BudgetCategory[];
-  currency: string;
   editorState: EditorState;
   form: UseFormReturn<TransactionFormValues>;
   isDeleting: boolean;
@@ -409,226 +314,262 @@ function TransactionEditorPanel(props: {
 
   if (!props.editorState) {
     return (
-      <WorkspaceSection
-        description="Select a row or press N."
-        title="Transaction editor"
-        variant="muted"
-      >
-        <div className="border-line/70 bg-panel-strong/35 text-muted rounded-[var(--radius-control)] border px-3.5 py-3 text-sm leading-5">
-          No transaction selected.
-        </div>
-      </WorkspaceSection>
+      <Card className="xl:sticky xl:top-28">
+        <CardHeader>
+          <CardTitle>Transaction editor</CardTitle>
+          <CardDescription>
+            Select a row to correct it, or create a manual transaction for cash,
+            transfers, or statement fixes.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="border-line/70 bg-panel-strong/35 rounded-[24px] border px-4 py-4 text-sm leading-6">
+            No transaction is selected yet.
+          </div>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <WorkspaceSection
-      actions={
-        props.transaction ? <Badge variant="outline">{sourceLabel}</Badge> : null
-      }
-      description={isCreateMode ? "Stored locally." : sourceLabel}
-      title={isCreateMode ? "New manual transaction" : "Edit transaction"}
-      variant="elevated"
-    >
-      <form
-        className="space-y-4"
-        onSubmit={(event) => {
-          event.preventDefault();
-          void props.onSubmit();
-        }}
-      >
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="space-y-1.5 sm:col-span-2">
-            <label
-              className="text-ink block text-sm font-semibold"
-              htmlFor="transaction-merchant"
-            >
-              Merchant
-            </label>
-            <Input
-              id="transaction-merchant"
-              placeholder="Corner Market"
-              ref={(element) => {
-                props.onMerchantInputRefChange?.(element);
-                merchantFieldRef(element);
-              }}
-              {...merchantFieldProps}
-            />
-            {props.form.formState.errors.merchantRaw ? (
-              <p className="text-warning text-sm">
-                {props.form.formState.errors.merchantRaw.message}
-              </p>
-            ) : null}
-          </div>
+    <Card className="xl:sticky xl:top-28">
+      <CardHeader>
+        <CardTitle>
+          {isCreateMode ? "Create manual transaction" : "Edit transaction"}
+        </CardTitle>
+        <CardDescription>
+          {isCreateMode
+            ? "Manual entries are stored locally and included in the same monthly rollups as imported activity."
+            : `Adjust the saved transaction and rebuild the affected month snapshots. Source: ${sourceLabel}.`}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form
+          className="space-y-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void props.onSubmit();
+          }}
+        >
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2 sm:col-span-2">
+              <label
+                className="text-ink block text-sm font-semibold"
+                htmlFor="transaction-merchant"
+              >
+                Merchant
+              </label>
+              <Input
+                id="transaction-merchant"
+                placeholder="Corner Market"
+                ref={(element) => {
+                  props.onMerchantInputRefChange?.(element);
+                  merchantFieldRef(element);
+                }}
+                {...merchantFieldProps}
+              />
+              {props.form.formState.errors.merchantRaw ? (
+                <p className="text-warning text-sm">
+                  {props.form.formState.errors.merchantRaw.message}
+                </p>
+              ) : null}
+            </div>
 
-          <div className="space-y-1.5">
-            <label
-              className="text-ink block text-sm font-semibold"
-              htmlFor="transaction-date"
-            >
-              Date
-            </label>
-            <Input
-              id="transaction-date"
-              type="date"
-              {...props.form.register("date")}
-            />
-            {props.form.formState.errors.date ? (
-              <p className="text-warning text-sm">
-                {props.form.formState.errors.date.message}
-              </p>
-            ) : null}
-          </div>
+            <div className="space-y-2">
+              <label
+                className="text-ink block text-sm font-semibold"
+                htmlFor="transaction-date"
+              >
+                Date
+              </label>
+              <Input
+                id="transaction-date"
+                type="date"
+                {...props.form.register("date")}
+              />
+              {props.form.formState.errors.date ? (
+                <p className="text-warning text-sm">
+                  {props.form.formState.errors.date.message}
+                </p>
+              ) : null}
+            </div>
 
-          <div className="space-y-1.5">
-            <label
-              className="text-ink block text-sm font-semibold"
-              htmlFor="transaction-amount"
-            >
-              Amount
-            </label>
-            <Input
-              id="transaction-amount"
-              inputMode="decimal"
-              placeholder="0.00"
-              {...props.form.register("amountInput")}
-            />
-            {props.form.formState.errors.amountInput ? (
-              <p className="text-warning text-sm">
-                {props.form.formState.errors.amountInput.message}
-              </p>
-            ) : null}
-          </div>
+            <div className="space-y-2">
+              <label
+                className="text-ink block text-sm font-semibold"
+                htmlFor="transaction-amount"
+              >
+                Amount
+              </label>
+              <Input
+                id="transaction-amount"
+                inputMode="decimal"
+                placeholder="0.00"
+                {...props.form.register("amountInput")}
+              />
+              {props.form.formState.errors.amountInput ? (
+                <p className="text-warning text-sm">
+                  {props.form.formState.errors.amountInput.message}
+                </p>
+              ) : null}
+            </div>
 
-          <div className="space-y-1.5">
-            <label
-              className="text-ink block text-sm font-semibold"
-              htmlFor="transaction-direction"
-            >
-              Direction
-            </label>
-            <Select id="transaction-direction" {...props.form.register("direction")}>
-              <option value="expense">Expense</option>
-              <option value="income">Income</option>
-            </Select>
-          </div>
+            <div className="space-y-2">
+              <label
+                className="text-ink block text-sm font-semibold"
+                htmlFor="transaction-direction"
+              >
+                Direction
+              </label>
+              <Select
+                id="transaction-direction"
+                {...props.form.register("direction")}
+              >
+                <option value="expense">Expense</option>
+                <option value="income">Income</option>
+              </Select>
+            </div>
 
-          <div className="space-y-1.5">
-            <label
-              className="text-ink block text-sm font-semibold"
-              htmlFor="transaction-category"
-            >
-              Category
-            </label>
-            <Select
-              aria-label="Transaction category"
-              id="transaction-category"
-              {...props.form.register("categoryId")}
-            >
-              <option value="">Uncategorized</option>
-              {props.activeCategories.length > 0 ? (
-                <optgroup label="Active categories">
-                  {props.activeCategories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
+            <div className="space-y-2">
+              <label
+                className="text-ink block text-sm font-semibold"
+                htmlFor="transaction-category"
+              >
+                Category
+              </label>
+              <Select
+                aria-label="Transaction category"
+                id="transaction-category"
+                {...props.form.register("categoryId")}
+              >
+                <option value="">Uncategorized</option>
+                {props.activeCategories.length > 0 ? (
+                  <optgroup label="Active categories">
+                    {props.activeCategories.map((category) => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                ) : null}
+                {historicalCategories.length > 0 ? (
+                  <optgroup label="Historical categories">
+                    {historicalCategories.map((category) => (
+                      <option key={category.id} value={category.id}>
+                        {category.name} (archived)
+                      </option>
+                    ))}
+                  </optgroup>
+                ) : null}
+                {hasMissingCategoryReference ? (
+                  <optgroup label="Missing reference">
+                    <option value={props.transaction?.categoryId ?? ""}>
+                      Deleted category reference
                     </option>
-                  ))}
-                </optgroup>
+                  </optgroup>
+                ) : null}
+              </Select>
+            </div>
+
+            <div className="space-y-2 sm:col-span-2">
+              <label
+                className="text-ink block text-sm font-semibold"
+                htmlFor="transaction-notes"
+              >
+                Notes
+              </label>
+              <Textarea
+                id="transaction-notes"
+                placeholder="Optional context for this transaction"
+                {...props.form.register("notes")}
+              />
+              {props.form.formState.errors.notes ? (
+                <p className="text-warning text-sm">
+                  {props.form.formState.errors.notes.message}
+                </p>
               ) : null}
-              {historicalCategories.length > 0 ? (
-                <optgroup label="Historical categories">
-                  {historicalCategories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name} (archived)
-                    </option>
-                  ))}
-                </optgroup>
-              ) : null}
-              {hasMissingCategoryReference ? (
-                <optgroup label="Missing reference">
-                  <option value={props.transaction?.categoryId ?? ""}>
-                    Deleted category reference
-                  </option>
-                </optgroup>
-              ) : null}
-            </Select>
+            </div>
           </div>
 
-          <div className="space-y-1.5 sm:col-span-2">
-            <label
-              className="text-ink block text-sm font-semibold"
-              htmlFor="transaction-notes"
-            >
-              Notes
+          <div className="grid gap-3">
+            <label className="border-line/70 bg-panel-strong/30 flex items-start gap-3 rounded-[22px] border px-4 py-3">
+              <input
+                aria-label="Ignore in rollups"
+                className="border-line text-accent focus:ring-accent mt-1 size-4 rounded border"
+                type="checkbox"
+                {...props.form.register("ignored")}
+              />
+              <span>
+                <span className="text-ink block text-sm font-semibold">
+                  Ignore in rollups
+                </span>
+                <span className="text-muted block text-sm leading-6">
+                  Keep the row for reference, but exclude it from planned vs
+                  actual totals.
+                </span>
+              </span>
             </label>
-            <Textarea
-              id="transaction-notes"
-              placeholder="Optional notes"
-              {...props.form.register("notes")}
-            />
-            {props.form.formState.errors.notes ? (
-              <p className="text-warning text-sm">
-                {props.form.formState.errors.notes.message}
-              </p>
-            ) : null}
+
+            <label className="border-line/70 bg-panel-strong/30 flex items-start gap-3 rounded-[22px] border px-4 py-3">
+              <input
+                aria-label="Mark as transfer-like"
+                className="border-line text-accent focus:ring-accent mt-1 size-4 rounded border"
+                type="checkbox"
+                {...props.form.register("transferLike")}
+              />
+              <span>
+                <span className="text-ink block text-sm font-semibold">
+                  Mark as transfer-like
+                </span>
+                <span className="text-muted block text-sm leading-6">
+                  Use this flag for reimbursements, card payments, or internal
+                  moves that deserve extra review.
+                </span>
+              </span>
+            </label>
           </div>
-        </div>
 
-        <div className="grid gap-3">
-          <EditorFlag
-            checked={props.form.watch("ignored")}
-            description="Keep the row, but exclude it from rollups."
-            label="Ignore in rollups"
-            onChange={props.form.register("ignored").onChange}
-          />
-          <EditorFlag
-            checked={props.form.watch("transferLike")}
-            description="Flag reimbursements, card payments, or internal moves."
-            label="Mark as transfer-like"
-            onChange={props.form.register("transferLike").onChange}
-          />
-        </div>
-
-        {props.transaction ? (
-          <div className="border-line/70 bg-panel-strong/20 rounded-[var(--radius-control)] border px-3.5 py-3 text-sm leading-5">
-            <p className="text-ink font-semibold">Record metadata</p>
-            <p className="text-muted mt-1">
-              Created {formatDateTime(props.transaction.createdAt)}. Updated{" "}
-              {formatDateTime(props.transaction.updatedAt)}.
-            </p>
-          </div>
-        ) : null}
-
-        <div className="flex flex-wrap gap-2">
-          <Button disabled={props.isSaving} type="submit" variant="primary">
-            {props.isSaving
-              ? isCreateMode
-                ? "Creating..."
-                : "Saving..."
-              : isCreateMode
-                ? "Create"
-                : "Save"}
-          </Button>
-          <Button
-            disabled={props.isSaving || props.isDeleting}
-            onClick={props.onClose}
-            variant="secondary"
-          >
-            Close
-          </Button>
           {props.transaction ? (
+            <div className="border-line/70 bg-panel-strong/30 rounded-[22px] border px-4 py-3 text-sm leading-6">
+              <p className="text-ink font-semibold">Saved record metadata</p>
+              <p className="text-muted mt-1">
+                Created {formatDateTime(props.transaction.createdAt)}. Last
+                updated {formatDateTime(props.transaction.updatedAt)}.
+              </p>
+            </div>
+          ) : null}
+
+          <div className="flex flex-wrap gap-3">
+            <Button disabled={props.isSaving} type="submit" variant="primary">
+              {props.isSaving
+                ? isCreateMode
+                  ? "Creating..."
+                  : "Saving..."
+                : isCreateMode
+                  ? "Create transaction"
+                  : "Save transaction"}
+            </Button>
             <Button
-              className="border-warning/30 text-warning hover:border-warning/40 hover:bg-orange-50"
               disabled={props.isSaving || props.isDeleting}
-              onClick={() => void props.onDelete()}
+              onClick={props.onClose}
               variant="secondary"
             >
-              {props.isDeleting ? "Deleting..." : "Delete"}
+              Close
             </Button>
-          ) : null}
-        </div>
-      </form>
-    </WorkspaceSection>
+            {props.transaction ? (
+              <Button
+                className="border-warning/30 text-warning hover:border-warning/40 hover:bg-orange-50"
+                disabled={props.isSaving || props.isDeleting}
+                onClick={() => void props.onDelete()}
+                variant="secondary"
+              >
+                {props.isDeleting ? "Deleting..." : "Delete transaction"}
+              </Button>
+            ) : null}
+          </div>
+        </form>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -822,16 +763,16 @@ export function TransactionsScreen() {
 
   if (bootstrap.status === "booting" || !workspace || !filters) {
     return (
-      <div className="space-y-5">
+      <div className="space-y-6">
         <PageHeader
-          badge={<Badge variant="accent">Transactions loading</Badge>}
-          description="Preparing the transaction ledger."
+          badge={<Badge variant="accent">Phase 7 loading</Badge>}
+          description="Preparing the local transaction ledger with categories, imports, and saved corrections from IndexedDB."
           eyebrow="Transactions"
           title="Transactions"
         />
         <Card>
-          <CardContent className="text-muted p-5 text-sm leading-5">
-            Loading the local transaction workspace.
+          <CardContent className="text-muted p-6 text-sm leading-6">
+            Loading the local transaction workspace from IndexedDB.
           </CardContent>
         </Card>
       </div>
@@ -850,10 +791,6 @@ export function TransactionsScreen() {
   const visibleSelectedCount = selectedTransactionIds.filter((transactionId) =>
     visibleTransactionIds.has(transactionId),
   ).length;
-  const selectedMonthLabel =
-    filters.monthKey === "all"
-      ? "All months"
-      : formatMonthKeyLabel(filters.monthKey, workspace.locale, workspace.monthStartDay);
 
   const handleSaveTransaction = form.handleSubmit(async (values) => {
     setIsSaving(true);
@@ -980,73 +917,77 @@ export function TransactionsScreen() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
-        badge={<Badge variant="accent">Transactions live</Badge>}
+        badge={<Badge variant="accent">Phase 11 ready</Badge>}
+        description="Work through the transaction ledger locally: search by merchant, focus a month, fix categories, flag transfers, ignore noise safely, and add manual corrections without leaving the device."
         eyebrow="Transactions"
         title="Transactions"
       />
 
-      <section className="border-line/70 bg-canvas/95 sticky top-0 z-10 rounded-[var(--radius-panel)] border backdrop-blur">
-        <div className="flex flex-col gap-3 px-[var(--space-card)] py-[var(--space-card-compact)]">
-          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-            <div className="flex min-w-0 flex-wrap items-center gap-2.5">
-              <Badge variant="outline">{selectedMonthLabel}</Badge>
-              <span className="text-muted text-sm">
-                {filteredTransactions.length} visible
-              </span>
-              <span className="text-muted text-sm">
-                {visibleSelectedCount} selected
-              </span>
-              <span className="text-muted text-sm">
-                `/` search • `N` new row
-              </span>
-            </div>
+      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <SummaryCard
+          description="Rows currently visible after the active filters."
+          label="Visible rows"
+          value={String(filteredTransactions.length)}
+        />
+        <SummaryCard
+          description="Visible rows that still need a category."
+          label="Uncategorized"
+          value={String(visibleUncategorizedCount)}
+        />
+        <SummaryCard
+          description="Visible rows excluded from planned vs actual calculations."
+          label="Ignored"
+          value={String(visibleIgnoredCount)}
+        />
+        <SummaryCard
+          description="Rows selected for a bulk category action."
+          label="Selected"
+          value={String(visibleSelectedCount)}
+        />
+      </section>
 
-            <div className="flex flex-wrap gap-2">
-              <Button
-                aria-keyshortcuts="N"
-                onClick={() => {
-                  setEditorState({
-                    mode: "create",
-                  });
-                  setMessage(null);
-                }}
-                variant="primary"
-              >
-                Add manual
-              </Button>
-              <Button
-                onClick={() =>
-                  setFilters(createDefaultTransactionFilters(monthKeys[0] ?? null))
-                }
-                size="sm"
-                variant="secondary"
-              >
-                Reset
-              </Button>
-              <Button
-                disabled={filteredTransactions.length === 0}
-                onClick={() =>
-                  setSelectedTransactionIds(
-                    filteredTransactions.map((transaction) => transaction.id),
-                  )
-                }
-                size="sm"
-                variant="secondary"
-              >
-                Select all
-              </Button>
-            </div>
+      {message ? (
+        <Notice tone={message.tone}>
+          {message.body}
+        </Notice>
+      ) : null}
+
+      {bootstrap.errorMessage ? (
+        <Notice tone="warning">
+          {bootstrap.errorMessage}
+        </Notice>
+      ) : null}
+
+      <Card className="xl:sticky xl:top-4 xl:z-10" variant="muted">
+        <CardHeader className="flex flex-col gap-3 border-b border-line/60 sm:flex-row sm:items-end sm:justify-between">
+          <div className="space-y-1.5">
+            <CardTitle>Ledger filters</CardTitle>
+            <CardDescription>
+              Narrow the ledger by month, category, direction, ignored state, or
+              merchant search before editing or bulk categorizing. Press `/` to
+              focus search or `N` to add a manual transaction.
+            </CardDescription>
           </div>
-
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1.6fr)_repeat(4,minmax(0,1fr))]">
-            <div className="space-y-1.5">
+          <Button
+            onClick={() =>
+              setFilters(createDefaultTransactionFilters(monthKeys[0] ?? null))
+            }
+            size="sm"
+            variant="secondary"
+          >
+            Reset filters
+          </Button>
+        </CardHeader>
+        <CardContent className="space-y-4 pt-4">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,1.5fr)_repeat(4,minmax(0,1fr))]">
+            <div className="space-y-2">
               <label
                 className="text-ink block text-sm font-semibold"
                 htmlFor="transaction-search"
               >
-                Search
+                Search merchant or notes
               </label>
               <Input
                 aria-keyshortcuts="/"
@@ -1056,13 +997,13 @@ export function TransactionsScreen() {
                     searchQuery: event.target.value,
                   })
                 }
-                placeholder="Merchant, note, date..."
+                placeholder="Whole Foods, payroll, correction..."
                 ref={searchInputRef}
                 value={filters.searchQuery}
               />
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <label
                 className="text-ink block text-sm font-semibold"
                 htmlFor="transaction-month-filter"
@@ -1091,7 +1032,7 @@ export function TransactionsScreen() {
               </Select>
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <label
                 className="text-ink block text-sm font-semibold"
                 htmlFor="transaction-category-filter"
@@ -1116,7 +1057,7 @@ export function TransactionsScreen() {
               </Select>
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <label
                 className="text-ink block text-sm font-semibold"
                 htmlFor="transaction-direction-filter"
@@ -1138,12 +1079,12 @@ export function TransactionsScreen() {
               </Select>
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <label
                 className="text-ink block text-sm font-semibold"
                 htmlFor="transaction-ignored-filter"
               >
-                Ignored
+                Ignored filter
               </label>
               <Select
                 id="transaction-ignored-filter"
@@ -1161,72 +1102,77 @@ export function TransactionsScreen() {
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-2.5">
-            <InlineToggle
+          <label className="border-line/70 bg-panel flex items-center gap-3 rounded-xl border px-4 py-2.5 text-sm">
+            <input
               checked={filters.onlyUncategorized}
-              label="Only uncategorized"
-              onChange={(checked) =>
+              className="border-line text-accent focus:ring-accent size-4 rounded border"
+              onChange={(event) =>
                 updateFilters({
-                  onlyUncategorized: checked,
+                  onlyUncategorized: event.target.checked,
                 })
               }
+              type="checkbox"
             />
-          </div>
-        </div>
-      </section>
+            Only uncategorized
+          </label>
+        </CardContent>
+      </Card>
 
-      <section className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-4">
-        <SummaryMetric
-          detail="Filtered"
-          label="Visible rows"
-          value={String(filteredTransactions.length)}
-        />
-        <SummaryMetric
-          detail="Need cat"
-          label="Uncategorized"
-          value={String(visibleUncategorizedCount)}
-        />
-        <SummaryMetric
-          detail="Excluded"
-          label="Ignored"
-          value={String(visibleIgnoredCount)}
-        />
-        <SummaryMetric
-          detail="Bulk"
-          label="Selected"
-          value={String(visibleSelectedCount)}
-        />
-      </section>
-
-      {message ? <Notice tone={message.tone}>{message.body}</Notice> : null}
-
-      {bootstrap.errorMessage ? (
-        <Notice tone="warning">{bootstrap.errorMessage}</Notice>
-      ) : null}
-
-      <section className="grid gap-3.5 xl:grid-cols-[minmax(0,1.6fr)_minmax(22rem,0.95fr)]">
-        <div className="grid gap-3.5">
-          <WorkspaceSection
-            actions={<Badge variant="outline">{filteredTransactions.length} rows</Badge>}
-            title="Transaction ledger"
-            variant="elevated"
-          >
-            <div className="space-y-3">
+      <section className="grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_390px]">
+        <div className="grid gap-4">
+          <Card variant="elevated">
+            <CardHeader className="flex flex-col gap-4 border-b border-line/60 lg:flex-row lg:items-start lg:justify-between">
+              <div className="space-y-2">
+                <CardTitle>Transaction ledger</CardTitle>
+                <CardDescription>
+                  The ledger mixes imported and manual rows. Bulk actions only
+                  affect the rows you explicitly select.
+                </CardDescription>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <Button
+                  aria-keyshortcuts="N"
+                  onClick={() => {
+                    setEditorState({
+                      mode: "create",
+                    });
+                    setMessage(null);
+                  }}
+                  variant="primary"
+                >
+                  Add manual transaction
+                </Button>
+                <Button
+                  disabled={filteredTransactions.length === 0}
+                  onClick={() =>
+                    setSelectedTransactionIds(
+                      filteredTransactions.map((transaction) => transaction.id),
+                    )
+                  }
+                  variant="secondary"
+                >
+                  Select all visible
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4 pt-4">
               {visibleSelectedCount > 0 ? (
-                <div className="border-line/70 bg-panel-strong/20 rounded-[var(--radius-control)] border px-3.5 py-3">
+                <div className="border-line/70 bg-panel-strong/20 rounded-xl border p-4">
                   <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                     <div>
                       <p className="text-ink text-sm font-semibold">
-                        {visibleSelectedCount} selected
+                        {visibleSelectedCount} selected transaction
+                        {visibleSelectedCount === 1 ? "" : "s"}
                       </p>
-                      <p className="text-muted text-[0.75rem] leading-4">
-                        Apply one category.
+                      <p className="text-muted mt-1 text-sm leading-6">
+                        Apply one category to the visible selection without
+                        changing amounts, dates, or notes.
                       </p>
                     </div>
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-3">
                       <Select
                         aria-label="Bulk category"
-                        className="min-w-44"
+                        className="min-w-48"
                         onChange={(event) => setBulkCategoryId(event.target.value)}
                         value={bulkCategoryId}
                       >
@@ -1249,7 +1195,7 @@ export function TransactionsScreen() {
                         size="sm"
                         variant="secondary"
                       >
-                        Clear
+                        Clear selection
                       </Button>
                     </div>
                   </div>
@@ -1257,12 +1203,12 @@ export function TransactionsScreen() {
               ) : null}
 
               {filteredTransactions.length === 0 ? (
-                <div className="border-line/70 bg-panel-strong/35 text-muted rounded-[var(--radius-control)] border px-3.5 py-3 text-sm leading-5">
-                  No rows match the current filters.
+                <div className="border-line/70 bg-panel-strong/35 rounded-[24px] border px-4 py-4 text-sm leading-6">
+                  No transactions match the current filters.
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <div className="text-muted hidden grid-cols-[minmax(0,1.8fr)_minmax(0,0.9fr)_minmax(0,1fr)_auto_auto] px-3.5 text-[0.62rem] font-semibold uppercase tracking-[0.16em] xl:grid">
+                  <div className="text-muted hidden grid-cols-[minmax(0,1.7fr)_minmax(0,0.9fr)_minmax(0,1fr)_auto_auto] px-4 text-xs font-semibold uppercase tracking-[0.16em] xl:grid">
                     <span>Merchant</span>
                     <span>Source</span>
                     <span>Category</span>
@@ -1304,54 +1250,26 @@ export function TransactionsScreen() {
                   </List>
                 </div>
               )}
-            </div>
-          </WorkspaceSection>
+            </CardContent>
+          </Card>
         </div>
 
-        <div className="grid gap-3.5 xl:sticky xl:top-[4.5rem] xl:self-start">
-          <WorkspaceSection title="Workspace snapshot" variant="muted">
-            <List>
-              <LedgerMetaRow
-                label="Review period"
-                secondary="Current filter"
-                value={selectedMonthLabel}
-              />
-              <LedgerMetaRow
-                label="Currency"
-                secondary="Display"
-                value={workspace.currency}
-              />
-              <LedgerMetaRow
-                label="Categories"
-                secondary="Active"
-                value={activeCategories.length}
-              />
-              <LedgerMetaRow
-                label="Imported files"
-                secondary="Sources"
-                value={workspace.statementImports.length}
-              />
-            </List>
-          </WorkspaceSection>
-
-          <TransactionEditorPanel
-            activeCategories={activeCategories}
-            allCategories={workspace.categories}
-            currency={workspace.currency}
-            editorState={editorState}
-            form={form}
-            isDeleting={isDeleting}
-            isSaving={isSaving}
-            onClose={() => setEditorState(null)}
-            onDelete={handleDeleteTransaction}
-            onMerchantInputRefChange={(element) => {
-              merchantInputRef.current = element;
-            }}
-            onSubmit={handleSaveTransaction}
-            statementImports={workspace.statementImports}
-            transaction={editingTransaction}
-          />
-        </div>
+        <TransactionEditorCard
+          activeCategories={activeCategories}
+          allCategories={workspace.categories}
+          editorState={editorState}
+          form={form}
+          isDeleting={isDeleting}
+          isSaving={isSaving}
+          onClose={() => setEditorState(null)}
+          onDelete={handleDeleteTransaction}
+          onMerchantInputRefChange={(element) => {
+            merchantInputRef.current = element;
+          }}
+          onSubmit={handleSaveTransaction}
+          statementImports={workspace.statementImports}
+          transaction={editingTransaction}
+        />
       </section>
     </div>
   );
