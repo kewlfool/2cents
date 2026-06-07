@@ -1,0 +1,9 @@
+Category,Type,Mode,Planned Amount,Sort Order,Color,Icon Key
+Primary Salary,Income,Fixed,5200,10,#2d635f,briefcase
+Side Income,Income,Variable,250,20,#4f7d73,receipt
+Rent,Expense,Fixed,1650,30,#7a4f43,home
+Utilities,Expense,Fixed,240,40,#7a6843,plug
+Groceries,Expense,Variable,650,50,#597a4b,shopping-basket
+Dining,Expense,Variable,220,60,#9b6b43,utensils
+Transit,Expense,Variable,140,70,#456b8f,bus
+Emergency Fund,Expense,Fixed,300,80,#47644e,piggy-bank
