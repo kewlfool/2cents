@@ -10,6 +10,7 @@ import { useAppBootstrap } from "@/components/providers/app-bootstrap-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { List, ListRow } from "@/components/ui/list";
 import { Notice } from "@/components/ui/notice";
@@ -987,7 +988,7 @@ export function TransactionsScreen() {
         title="Transactions"
       />
 
-      <section className="border-line/70 bg-canvas/95 sticky top-0 z-10 rounded-[var(--radius-panel)] border backdrop-blur">
+      <section className="border-line/70 bg-canvas/95 rounded-[var(--radius-panel)] border lg:sticky lg:top-0 lg:z-10 lg:backdrop-blur">
         <div className="flex flex-col gap-3 px-[var(--space-card)] py-[var(--space-card-compact)]">
           <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
             <div className="flex min-w-0 flex-wrap items-center gap-2.5">
@@ -1257,9 +1258,7 @@ export function TransactionsScreen() {
               ) : null}
 
               {filteredTransactions.length === 0 ? (
-                <div className="border-line/70 bg-panel-strong/35 text-muted rounded-[var(--radius-control)] border px-3.5 py-3 text-sm leading-5">
-                  No rows match the current filters.
-                </div>
+                <EmptyState body="No rows match the current filters." />
               ) : (
                 <div className="space-y-2">
                   <div className="text-muted hidden grid-cols-[minmax(0,1.8fr)_minmax(0,0.9fr)_minmax(0,1fr)_auto_auto] px-3.5 text-[0.62rem] font-semibold uppercase tracking-[0.16em] xl:grid">

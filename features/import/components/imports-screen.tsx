@@ -8,6 +8,7 @@ import { useAppBootstrap } from "@/components/providers/app-bootstrap-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { List, ListRow } from "@/components/ui/list";
 import { Notice } from "@/components/ui/notice";
@@ -538,7 +539,7 @@ export function ImportsScreen() {
                   ) : null}
                 </>
               ) : (
-                <InfoBlock body="No statement staged yet. Upload a CSV or XLSX file to start review." />
+                <EmptyState body="No statement staged yet. Upload a CSV or XLSX file to start review." />
               )}
             </div>
           </WorkspaceSection>
@@ -872,7 +873,7 @@ export function ImportsScreen() {
             title="Import history"
           >
             {workspace.statementImports.length === 0 ? (
-              <InfoBlock body="No saved imports yet." />
+              <EmptyState body="No saved imports yet." />
             ) : (
               <List>
                 {workspace.statementImports.map((statementImport) => (

@@ -398,6 +398,39 @@ Acceptance criteria for this phase:
 - Every screen uses the same spacing and section language.
 - Low-frequency pages still feel efficient and tool-like, not verbose.
 
+### Phase 4 execution notes
+
+Status:
+
+- Budget setup workspace refactor completed on 2026-05-12.
+- Budget setup density pass completed on 2026-05-12.
+- Rules management workspace refactor completed on 2026-05-12.
+- Settings workspace refactor completed on 2026-05-12.
+- Phase 4 code-level verification completed on 2026-05-12.
+
+Files changed:
+
+- `features/budget/components/budget-setup-screen.tsx`
+- `features/rules/components/rules-screen.tsx`
+- `features/settings/components/settings-screen.tsx`
+
+What changed:
+
+- Budget setup now uses a denser baseline workspace with compact plan controls, a dominant category-planning surface, and a sticky side rail for savings context and baseline state.
+- The budget category editor was tightened into a more table-like planning surface with per-section subtotals, smaller row treatments, and less repeated helper weight.
+- Rules now operate as a management workspace with priority-ordered saved rules as the primary surface and a sticky side rail for create/edit, preview application, and testing.
+- Settings now compress preferences, backup/import, install state, privacy/storage, and reset into smaller operational sections with shorter copy and a preserved destructive boundary.
+
+Verification completed:
+
+- `npm run lint`
+- `npm run typecheck`
+- `npm run build`
+
+Verification caveat:
+
+- Browser-based visual QA is still blocked in this environment by the existing Playwright/macOS permission failure, so Phase 4 is complete at the code level but still wants a later render-level pass once browser tooling is available.
+
 ## Phase 5: Polish and cleanup
 
 Objective: remove leftover inconsistencies after the main rewrites land.
@@ -409,6 +442,43 @@ Work:
 - Normalize badge density and row action patterns.
 - Review responsive behavior to avoid mobile stacking explosions.
 - Remove any remaining “card inside card” patterns.
+
+### Phase 5 execution notes
+
+Status:
+
+- Cross-screen consistency cleanup completed on 2026-05-15.
+- Final responsive and verification cleanup completed on 2026-05-15.
+- Phase 5 code-level verification completed on 2026-05-15.
+
+Files changed:
+
+- `components/ui/empty-state.tsx`
+- `features/dashboard/components/dashboard-preview.tsx`
+- `features/review/components/monthly-review-screen.tsx`
+- `features/transactions/components/transactions-screen.tsx`
+- `features/import/components/imports-screen.tsx`
+- `features/budget/components/budget-setup-screen.tsx`
+- `features/rules/components/rules-screen.tsx`
+- `docs/ui-refactor-plan.md`
+
+What changed:
+
+- Added a shared compact empty-state primitive and replaced repeated one-off empty blocks across the major workspace screens.
+- Tightened empty-state copy so the screens read more consistently and with less explanatory weight.
+- Reduced responsive risk on smaller screens by disabling sticky top toolbars below `lg` in the transaction and monthly review workspaces.
+- Closed the refactor with a full lint, typecheck, test, and build pass.
+
+Verification completed:
+
+- `npm run lint`
+- `npm run typecheck`
+- `npm run test`
+- `npm run build`
+
+Verification caveat:
+
+- Browser-based visual QA is still blocked in this environment by the existing Playwright/macOS permission failure, so the refactor is complete at the code level but still wants a later render-level pass once browser tooling is available.
 
 ## Implementation details
 

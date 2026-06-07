@@ -1,6 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 
@@ -9,13 +10,7 @@ import { useAppBootstrap } from "@/components/providers/app-bootstrap-provider";
 import { usePwa } from "@/components/providers/pwa-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { List, ListRow } from "@/components/ui/list";
 import { Notice } from "@/components/ui/notice";
@@ -58,19 +53,84 @@ function createBackupFileName() {
 }
 
 function SummaryMetric(props: {
-  caption: string;
+  detail: string;
   label: string;
   value: string;
 }) {
   return (
-    <div className="border-line/70 bg-panel/96 space-y-1 rounded-xl border px-4 py-3">
+    <div className="border-line/70 bg-panel/96 rounded-[var(--radius-panel)] border px-3 py-2">
       <p className="text-muted text-xs font-semibold uppercase tracking-[0.14em]">
         {props.label}
       </p>
-      <p className="text-ink text-xl font-semibold tracking-tight">
+      <div className="mt-1 flex items-end justify-between gap-3">
+        <p className="text-ink text-base font-semibold tracking-tight">
+          {props.value}
+        </p>
+        <p className="text-muted text-right text-[0.75rem] leading-4">
+          {props.detail}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function WorkspaceSection(props: {
+  actions?: ReactNode;
+  children: ReactNode;
+  description?: string;
+  title: string;
+  variant?: "default" | "elevated" | "muted";
+}) {
+  const variantClass =
+    props.variant === "elevated"
+      ? "shadow-[var(--shadow-panel)]"
+      : props.variant === "muted"
+        ? "bg-panel-strong/18"
+        : "bg-panel/96";
+
+  return (
+    <section
+      className={cn(
+        "border-line/70 rounded-[var(--radius-panel)] border",
+        variantClass,
+      )}
+    >
+      <div className="border-line/60 flex items-start justify-between gap-3 border-b px-[var(--space-card)] py-[var(--space-card-compact)]">
+        <div className="min-w-0">
+          <h2 className="text-ink text-sm font-semibold tracking-tight">
+            {props.title}
+          </h2>
+          {props.description ? (
+            <p className="text-muted mt-1 text-[0.8125rem] leading-5">
+              {props.description}
+            </p>
+          ) : null}
+        </div>
+        {props.actions ? <div className="shrink-0">{props.actions}</div> : null}
+      </div>
+      <div className="p-[var(--space-card)]">{props.children}</div>
+    </section>
+  );
+}
+
+function SnapshotRow(props: { label: string; secondary: string; value: ReactNode }) {
+  return (
+    <ListRow className="items-center justify-between gap-4">
+      <div className="min-w-0">
+        <p className="text-ink text-sm font-semibold tracking-tight">{props.label}</p>
+        <p className="text-muted text-[0.75rem] leading-4">{props.secondary}</p>
+      </div>
+      <div className="text-ink shrink-0 text-right text-sm font-semibold">
         {props.value}
-      </p>
-      <p className="text-muted text-sm leading-5">{props.caption}</p>
+      </div>
+    </ListRow>
+  );
+}
+
+function InfoBlock(props: { body: string }) {
+  return (
+    <div className="border-line/70 bg-panel text-muted rounded-[var(--radius-control)] border px-3.5 py-3 text-sm leading-5">
+      {props.body}
     </div>
   );
 }
@@ -91,6 +151,8 @@ export function SettingsScreen() {
     defaultValues: createSettingsPreferencesFormValues(),
     resolver: zodResolver(settingsPreferencesFormSchema),
   });
+  const watchedCurrency = form.watch("currency");
+  const watchedMonthStartDay = form.watch("monthStartDay");
 
   useEffect(() => {
     if (!workspace) {
@@ -262,6 +324,13 @@ export function SettingsScreen() {
     workspace.settings?.currency ?? workspace.budgetPlan?.currency ?? "USD";
   const resolvedMonthStartDay =
     workspace.settings?.monthStartDay ?? workspace.budgetPlan?.monthStartDay ?? 1;
+  const latestMonthLabel = workspace.latestMonthKey
+    ? formatMonthKeyLabel(
+        workspace.latestMonthKey,
+        workspace.settings?.locale ?? "en-US",
+        resolvedMonthStartDay,
+      )
+    : "None yet";
   const exampleFiles = [
     {
       description:
@@ -278,42 +347,33 @@ export function SettingsScreen() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <PageHeader
         badge={<Badge variant="accent">Settings live</Badge>}
-        description="Control local-only preferences, data portability, install state, and privacy without turning the settings page into another dashboard."
         eyebrow="Settings"
         title="Settings"
       />
 
-      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-4">
         <SummaryMetric
-          caption="Current display and export currency."
+          detail="Display"
           label="Currency"
           value={resolvedCurrency}
         />
         <SummaryMetric
-          caption="Transactions before this day count toward the prior month."
+          detail="Review cycle"
           label="Month start"
           value={`Day ${resolvedMonthStartDay}`}
         />
         <SummaryMetric
-          caption="Locally stored transactions in this browser."
+          detail="Browser store"
           label="Transactions"
           value={String(workspace.counts.transactions)}
         />
         <SummaryMetric
-          caption="Latest available monthly snapshot."
+          detail="Latest snapshot"
           label="Latest month"
-          value={
-            workspace.latestMonthKey
-              ? formatMonthKeyLabel(
-                  workspace.latestMonthKey,
-                  workspace.settings?.locale ?? "en-US",
-                  resolvedMonthStartDay,
-                )
-              : "None yet"
-          }
+          value={latestMonthLabel}
         />
       </section>
 
@@ -329,108 +389,107 @@ export function SettingsScreen() {
         </Notice>
       ) : null}
 
-      <section className="grid gap-4 xl:grid-cols-[1.08fr_0.92fr]">
-        <div className="grid gap-4">
-          <Card variant="elevated">
-            <CardHeader className="border-b border-line/60">
-              <CardTitle>Local preferences</CardTitle>
-              <CardDescription>
-                These values stay on this device. Month-start changes also
-                recalculate which month each saved transaction belongs to.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pt-4">
-              <form
-                className="space-y-4"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  void handleSavePreferences();
-                }}
-              >
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <label
-                      className="text-ink block text-sm font-semibold"
-                      htmlFor="settings-currency"
-                    >
-                      Currency code
-                    </label>
-                    <Input
-                      autoCapitalize="characters"
-                      id="settings-currency"
-                      maxLength={3}
-                      placeholder="USD"
-                      {...form.register("currency")}
-                    />
-                    {form.formState.errors.currency ? (
-                      <p className="text-warning text-sm">
-                        {form.formState.errors.currency.message}
-                      </p>
-                    ) : null}
-                  </div>
-
-                  <div className="space-y-2">
-                    <label
-                      className="text-ink block text-sm font-semibold"
-                      htmlFor="settings-month-start"
-                    >
-                      Month start day
-                    </label>
-                    <Select
-                      id="settings-month-start"
-                      {...form.register("monthStartDay", {
-                        setValueAs: (value) => Number(value),
-                      })}
-                    >
-                      {monthStartOptions.map((day) => (
-                        <option key={day} value={day}>
-                          Day {day}
-                        </option>
-                      ))}
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap gap-3">
-                  <Button disabled={isSaving} type="submit" variant="primary">
-                    {isSaving ? "Saving..." : "Save preferences"}
-                  </Button>
-                  <Button
-                    disabled={isSaving}
-                    onClick={() =>
-                      form.reset(
-                        createSettingsPreferencesFormValues({
-                          currency: resolvedCurrency,
-                          monthStartDay: resolvedMonthStartDay,
-                        }),
-                      )
-                    }
-                    variant="secondary"
+      <section className="grid gap-3.5 xl:grid-cols-[minmax(0,1.12fr)_minmax(21rem,0.88fr)]">
+        <div className="grid gap-3.5">
+          <WorkspaceSection
+            actions={
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  disabled={isSaving}
+                  form="settings-preferences-form"
+                  type="submit"
+                  variant="primary"
+                >
+                  {isSaving ? "Saving..." : "Save preferences"}
+                </Button>
+                <Button
+                  disabled={isSaving}
+                  onClick={() =>
+                    form.reset(
+                      createSettingsPreferencesFormValues({
+                        currency: resolvedCurrency,
+                        monthStartDay: resolvedMonthStartDay,
+                      }),
+                    )
+                  }
+                  type="button"
+                  variant="secondary"
+                >
+                  Reset
+                </Button>
+              </div>
+            }
+            description="Month-start changes rebuild transaction month assignments."
+            title="Local preferences"
+            variant="elevated"
+          >
+            <form
+              className="space-y-3"
+              id="settings-preferences-form"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void handleSavePreferences();
+              }}
+            >
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <label
+                    className="text-ink block text-sm font-semibold"
+                    htmlFor="settings-currency"
                   >
-                    Reset form
-                  </Button>
+                    Currency code
+                  </label>
+                  <Input
+                    autoCapitalize="characters"
+                    id="settings-currency"
+                    maxLength={3}
+                    placeholder="USD"
+                    {...form.register("currency")}
+                  />
+                  {form.formState.errors.currency ? (
+                    <p className="text-warning text-[0.75rem] leading-4">
+                      {form.formState.errors.currency.message}
+                    </p>
+                  ) : null}
                 </div>
-              </form>
-            </CardContent>
-          </Card>
 
-          <Card>
-            <CardHeader className="border-b border-line/60">
-              <CardTitle>Backup and restore</CardTitle>
-              <CardDescription>
-                Keep portability explicit. Export the full local dataset as JSON
-                or replace this browser&apos;s data with a prior backup.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4 pt-4">
+                <div className="space-y-2">
+                  <label
+                    className="text-ink block text-sm font-semibold"
+                    htmlFor="settings-month-start"
+                  >
+                    Month start day
+                  </label>
+                  <Select
+                    id="settings-month-start"
+                    {...form.register("monthStartDay", {
+                      setValueAs: (value) => Number(value),
+                    })}
+                  >
+                    {monthStartOptions.map((day) => (
+                      <option key={day} value={day}>
+                        Day {day}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+              </div>
+            </form>
+          </WorkspaceSection>
+
+          <WorkspaceSection
+            description="Export the current browser dataset or replace it with a prior backup."
+            title="Backup and files"
+          >
+            <div className="space-y-3">
               <List>
                 <ListRow className="items-center justify-between gap-4">
                   <div className="min-w-0 flex-1">
                     <p className="text-ink text-sm font-semibold">
-                      Export current local dataset
+                      Export dataset
                     </p>
-                    <p className="text-muted text-sm leading-5">
-                      Download a JSON backup for this browser only.
+                    <p className="text-muted text-[0.8125rem] leading-5">
+                      Download a JSON backup for this browser.
                     </p>
                   </div>
                   <Button
@@ -438,7 +497,7 @@ export function SettingsScreen() {
                     onClick={() => void handleExport()}
                     variant="primary"
                   >
-                    {isExporting ? "Exporting..." : "Export JSON backup"}
+                    {isExporting ? "Exporting..." : "Export JSON"}
                   </Button>
                 </ListRow>
                 <ListRow className="flex-col gap-3">
@@ -449,9 +508,8 @@ export function SettingsScreen() {
                     >
                       Import JSON backup
                     </label>
-                    <p className="text-muted text-sm leading-5">
-                      Import replaces the current local IndexedDB dataset for
-                      this browser.
+                    <p className="text-muted text-[0.8125rem] leading-5">
+                      Import replaces the current local browser dataset.
                     </p>
                   </div>
                   <Input
@@ -466,54 +524,70 @@ export function SettingsScreen() {
                   />
                 </ListRow>
               </List>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="border-b border-line/60">
-              <CardTitle>Example statement files</CardTitle>
-              <CardDescription>
-                Download sample files for manual import testing.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pt-4">
-              <List>
-                {exampleFiles.map((file) => (
-                  <ListRow className="items-center justify-between gap-4" key={file.href}>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-ink text-sm font-semibold">{file.label}</p>
-                      <p className="text-muted text-sm leading-5">
-                        {file.description}
-                      </p>
-                    </div>
-                    <a
-                      className={cn(
-                        buttonVariants({
-                          size: "sm",
-                          variant: "secondary",
-                        }),
-                      )}
-                      download
-                      href={file.href}
-                    >
-                      Download
-                    </a>
-                  </ListRow>
-                ))}
-              </List>
-            </CardContent>
-          </Card>
+              <div className="space-y-2">
+                <p className="text-ink text-sm font-semibold">Example statement files</p>
+                <List>
+                  {exampleFiles.map((file) => (
+                    <ListRow className="items-center justify-between gap-4" key={file.href}>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-ink text-sm font-semibold">{file.label}</p>
+                        <p className="text-muted text-[0.8125rem] leading-5">
+                          {file.description}
+                        </p>
+                      </div>
+                      <a
+                        className={cn(
+                          buttonVariants({
+                            size: "sm",
+                            variant: "secondary",
+                          }),
+                        )}
+                        download
+                        href={file.href}
+                      >
+                        Download
+                      </a>
+                    </ListRow>
+                  ))}
+                </List>
+              </div>
+            </div>
+          </WorkspaceSection>
         </div>
 
-        <div className="grid gap-4">
-          <Card>
-            <CardHeader className="border-b border-line/60">
-              <CardTitle>Install and offline</CardTitle>
-              <CardDescription>
-                PWA support depends on production builds and browser capability.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4 pt-4">
+        <div className="grid gap-3.5 xl:sticky xl:top-[4.5rem] xl:self-start">
+          <WorkspaceSection title="Workspace snapshot" variant="muted">
+            <List>
+              <SnapshotRow
+                label="Currency"
+                secondary="Current form"
+                value={watchedCurrency.toUpperCase()}
+              />
+              <SnapshotRow
+                label="Month start"
+                secondary="Current form"
+                value={`Day ${watchedMonthStartDay}`}
+              />
+              <SnapshotRow
+                label="Unsaved changes"
+                secondary="Preferences form"
+                value={form.formState.isDirty ? "Pending" : "Saved"}
+              />
+              <SnapshotRow
+                label="Transactions"
+                secondary="Local store"
+                value={String(workspace.counts.transactions)}
+              />
+              <SnapshotRow
+                label="Latest month"
+                secondary="Snapshot"
+                value={latestMonthLabel}
+              />
+            </List>
+          </WorkspaceSection>
+
+          <WorkspaceSection title="Install and offline">
+            <div className="space-y-3">
               <div className="flex flex-wrap gap-2">
                 <Badge variant={pwa.isInstalled ? "accent" : "outline"}>
                   {pwa.isInstalled ? "Installed" : "Browser tab"}
@@ -524,11 +598,11 @@ export function SettingsScreen() {
                   }
                 >
                   {pwa.runtimeMode === "production"
-                    ? "PWA runtime active"
-                    : "Development mode"}
+                    ? "PWA runtime"
+                    : "Development"}
                 </Badge>
                 {pwa.isOfflineReady ? (
-                  <Badge variant="accent">Offline shell cached</Badge>
+                  <Badge variant="accent">Offline ready</Badge>
                 ) : null}
                 {pwa.isUpdateReady ? (
                   <Badge variant="warning">Update ready</Badge>
@@ -536,25 +610,34 @@ export function SettingsScreen() {
               </div>
 
               <List>
-                <ListRow className="flex-col gap-1">
-                  <p className="text-ink text-sm font-semibold">Current runtime</p>
-                  <p className="text-muted text-sm leading-5">
-                    {pwa.runtimeMode === "production"
-                      ? "Installability and offline caching are active in this build."
-                      : "PWA registration is intentionally disabled in development. Use a production preview build to verify install and offline behavior."}
-                  </p>
-                </ListRow>
-                <ListRow className="flex-col gap-1">
-                  <p className="text-ink text-sm font-semibold">Platform guidance</p>
-                  <p className="text-muted text-sm leading-5">
-                    {pwa.platformHint === "ios"
-                      ? "On iPhone and iPad, install from Safari using Share > Add to Home Screen."
-                      : pwa.canInstall
-                        ? "This browser can show a direct install prompt."
-                        : "If your browser supports installation, the shell will surface an install prompt when it becomes available."}
-                  </p>
-                </ListRow>
+                <SnapshotRow
+                  label="Runtime"
+                  secondary="Current build"
+                  value={pwa.runtimeMode === "production" ? "Active" : "Dev"}
+                />
+                <SnapshotRow
+                  label="Install prompt"
+                  secondary="Browser support"
+                  value={pwa.canInstall ? "Available" : "Unavailable"}
+                />
               </List>
+
+              <InfoBlock
+                body={
+                  pwa.runtimeMode === "production"
+                    ? "Installability and offline caching are active in this build."
+                    : "PWA registration is disabled in development. Use a production preview build to verify install and offline behavior."
+                }
+              />
+              <InfoBlock
+                body={
+                  pwa.platformHint === "ios"
+                    ? "On iPhone and iPad, install from Safari using Share > Add to Home Screen."
+                    : pwa.canInstall
+                      ? "This browser can show a direct install prompt."
+                      : "If the browser supports installation, the shell will surface a prompt when available."
+                }
+              />
 
               <div className="flex flex-wrap gap-3">
                 {pwa.canInstall ? (
@@ -576,80 +659,42 @@ export function SettingsScreen() {
                   </Button>
                 ) : null}
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </WorkspaceSection>
 
-          <Card>
-            <CardHeader className="border-b border-line/60">
-              <CardTitle>Privacy</CardTitle>
-              <CardDescription>
-                The app is local-first by default.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pt-4">
+          <WorkspaceSection title="Privacy and storage">
+            <div className="space-y-3">
               <List>
-                <ListRow className="flex-col gap-1">
-                  <p className="text-ink text-sm font-semibold">Local storage</p>
-                  <p className="text-muted text-sm leading-5">
-                    Imported statements, transactions, rules, and snapshots stay
-                    in this browser unless you explicitly export them.
-                  </p>
-                </ListRow>
-                <ListRow className="flex-col gap-1">
-                  <p className="text-ink text-sm font-semibold">No hidden services</p>
-                  <p className="text-muted text-sm leading-5">
-                    There are no external analytics, ads, AI calls, or financial
-                    data uploads in the current product.
-                  </p>
-                </ListRow>
-                <ListRow className="flex-col gap-1">
-                  <p className="text-ink text-sm font-semibold">Portable by export</p>
-                  <p className="text-muted text-sm leading-5">
-                    Backup import and export are the only built-in data
-                    portability features in v1.
-                  </p>
-                </ListRow>
+                <SnapshotRow
+                  label="Imports"
+                  secondary="Local records"
+                  value={String(workspace.counts.imports)}
+                />
+                <SnapshotRow
+                  label="Rules"
+                  secondary="Local records"
+                  value={String(workspace.counts.rules)}
+                />
+                <SnapshotRow
+                  label="Snapshots"
+                  secondary="Local records"
+                  value={String(workspace.counts.months)}
+                />
               </List>
-            </CardContent>
-          </Card>
 
-          <Card>
-            <CardHeader className="border-b border-line/60">
-              <CardTitle>Current local footprint</CardTitle>
-              <CardDescription>
-                What is currently stored on this browser.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pt-4">
-              <List>
-                <ListRow className="flex-col gap-1">
-                  <p className="text-ink text-sm font-semibold">Saved records</p>
-                  <p className="text-muted text-sm leading-5">
-                    {workspace.counts.imports} imports, {workspace.counts.rules} rules,
-                    and {workspace.counts.months} monthly snapshots are stored on
-                    this browser.
-                  </p>
-                </ListRow>
-                <ListRow className="flex-col gap-1">
-                  <p className="text-ink text-sm font-semibold">Future scope</p>
-                  <p className="text-muted text-sm leading-5">
-                    Future flags stay explicit here, but cloud sync and remote
-                    backup remain out of scope for v1.
-                  </p>
-                </ListRow>
-              </List>
-            </CardContent>
-          </Card>
+              <InfoBlock body="Imported statements, transactions, rules, and snapshots stay in this browser unless you explicitly export them." />
+              <InfoBlock body="There are no external analytics, ads, AI calls, or financial data uploads in the current product." />
+              <InfoBlock body="Backup import and export are the only built-in portability features in v1." />
+            </div>
+          </WorkspaceSection>
 
-          <Card variant="muted">
-            <CardHeader className="border-b border-line/60">
-              <CardTitle>Reset local data</CardTitle>
-              <CardDescription>
-                Use this when you want to start fresh on this browser.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4 pt-4">
-              <label className="border-line/70 bg-panel flex items-start gap-3 rounded-xl border px-4 py-3">
+          <WorkspaceSection
+            description="Use this when you want to start fresh on this browser."
+            title="Reset local data"
+            variant="muted"
+          >
+            <div className="space-y-4">
+              <label className="border-line/70 bg-panel flex items-start gap-3 rounded-[var(--radius-control)] border px-3.5 py-3">
                 <input
                   aria-label="Reseed demo data after reset"
                   checked={reseedDemoData}
@@ -659,11 +704,10 @@ export function SettingsScreen() {
                 />
                 <span>
                   <span className="text-ink block text-sm font-semibold">
-                    Reseed demo data after reset
+                    Reseed demo data
                   </span>
-                  <span className="text-muted block text-sm leading-6">
-                    Keep the app usable immediately after a reset instead of
-                    leaving the local workspace empty.
+                  <span className="text-muted block text-[0.8125rem] leading-5">
+                    Keep the app usable immediately after reset.
                   </span>
                 </span>
               </label>
@@ -676,8 +720,8 @@ export function SettingsScreen() {
               >
                 {isResetting ? "Resetting..." : "Reset local data"}
               </Button>
-            </CardContent>
-          </Card>
+            </div>
+          </WorkspaceSection>
         </div>
       </section>
     </div>

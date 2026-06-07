@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { useAppBootstrap } from "@/components/providers/app-bootstrap-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { List, ListRow } from "@/components/ui/list";
 import { Select } from "@/components/ui/select";
 import { useMonthlyReviewWorkspace } from "@/features/review/hooks/use-monthly-review-workspace";
@@ -169,13 +169,7 @@ function ExpandButton(props: {
 }
 
 function CompactLoadingCard(props: { body: string }) {
-  return (
-    <Card>
-      <CardContent className="text-muted p-5 text-sm leading-5">
-        {props.body}
-      </CardContent>
-    </Card>
-  );
+  return <EmptyState body={props.body} />;
 }
 
 function EmptyReviewState(props: { body: string }) {
@@ -194,7 +188,7 @@ function MonthlySnapshotToolbar(props: {
   value: string;
 }) {
   return (
-    <section className="border-line/70 bg-canvas/95 sticky top-0 z-10 rounded-[var(--radius-panel)] border backdrop-blur">
+    <section className="border-line/70 bg-canvas/95 rounded-[var(--radius-panel)] border lg:sticky lg:top-0 lg:z-10 lg:backdrop-blur">
       <div className="flex flex-col gap-3 px-[var(--space-card)] py-[var(--space-card-compact)] lg:flex-row lg:items-end lg:justify-between">
         <div className="grid gap-3 sm:grid-cols-[minmax(12rem,16rem)_auto_auto] sm:items-end">
           <div className="space-y-1.5">
@@ -303,7 +297,7 @@ export function MonthlyReviewScreen() {
           eyebrow="Monthly review"
           title="Monthly review"
         />
-        <CompactLoadingCard body="No monthly snapshots are available yet. Import statement activity or seed data first." />
+        <CompactLoadingCard body="No monthly snapshots yet. Import statement activity or seed data first." />
       </div>
     );
   }

@@ -1,6 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 
@@ -8,13 +9,8 @@ import { PageHeader } from "@/components/layout/page-header";
 import { useAppBootstrap } from "@/components/providers/app-bootstrap-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { List, ListRow } from "@/components/ui/list";
 import { Notice } from "@/components/ui/notice";
@@ -34,6 +30,7 @@ import {
   saveMerchantRule,
 } from "@/features/rules/lib/rules-service";
 import { formatMinorUnits } from "@/lib/money";
+import { cn } from "@/lib/utils";
 
 type ScreenMessage = {
   body: string;
@@ -55,17 +52,84 @@ function formatDateTime(value: string) {
 }
 
 function SummaryMetric(props: {
+  detail: string;
   label: string;
   value: string | number;
 }) {
   return (
-    <div className="border-line/70 bg-panel/96 space-y-1 rounded-xl border px-4 py-3">
+    <div className="border-line/70 bg-panel/96 rounded-[var(--radius-panel)] border px-3 py-2">
       <p className="text-muted text-xs font-semibold uppercase tracking-[0.14em]">
         {props.label}
       </p>
-      <p className="text-ink text-xl font-semibold tracking-tight">
+      <div className="mt-1 flex items-end justify-between gap-3">
+        <p className="text-ink text-base font-semibold tracking-tight">
+          {props.value}
+        </p>
+        <p className="text-muted text-right text-[0.75rem] leading-4">
+          {props.detail}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function WorkspaceSection(props: {
+  actions?: ReactNode;
+  children: ReactNode;
+  description?: string;
+  title: string;
+  variant?: "default" | "elevated" | "muted";
+}) {
+  const variantClass =
+    props.variant === "elevated"
+      ? "shadow-[var(--shadow-panel)]"
+      : props.variant === "muted"
+        ? "bg-panel-strong/18"
+        : "bg-panel/96";
+
+  return (
+    <section
+      className={cn(
+        "border-line/70 rounded-[var(--radius-panel)] border",
+        variantClass,
+      )}
+    >
+      <div className="border-line/60 flex items-start justify-between gap-3 border-b px-[var(--space-card)] py-[var(--space-card-compact)]">
+        <div className="min-w-0">
+          <h2 className="text-ink text-sm font-semibold tracking-tight">
+            {props.title}
+          </h2>
+          {props.description ? (
+            <p className="text-muted mt-1 text-[0.8125rem] leading-5">
+              {props.description}
+            </p>
+          ) : null}
+        </div>
+        {props.actions ? <div className="shrink-0">{props.actions}</div> : null}
+      </div>
+      <div className="p-[var(--space-card)]">{props.children}</div>
+    </section>
+  );
+}
+
+function SnapshotRow(props: { label: string; secondary: string; value: ReactNode }) {
+  return (
+    <ListRow className="items-center justify-between gap-4">
+      <div className="min-w-0">
+        <p className="text-ink text-sm font-semibold tracking-tight">{props.label}</p>
+        <p className="text-muted text-[0.75rem] leading-4">{props.secondary}</p>
+      </div>
+      <div className="text-ink shrink-0 text-right text-sm font-semibold">
         {props.value}
-      </p>
+      </div>
+    </ListRow>
+  );
+}
+
+function InfoBlock(props: { body: string }) {
+  return (
+    <div className="border-line/70 bg-panel text-muted rounded-[var(--radius-control)] border px-3.5 py-3 text-sm leading-5">
+      {props.body}
     </div>
   );
 }
@@ -161,6 +225,21 @@ export function RulesScreen() {
         (category) => category.id === matchedSampleRule.categoryId,
       ) ?? null
     : null;
+  const rulesInPriorityOrder = [...workspace.rules].sort((left, right) => {
+    if (right.priority !== left.priority) {
+      return right.priority - left.priority;
+    }
+
+    return right.updatedAt.localeCompare(left.updatedAt);
+  });
+  const watchedMatchType = form.watch("matchType");
+  const watchedCategoryId = form.watch("categoryId");
+  const watchedPriority = form.watch("priority");
+  const watchedPattern = form.watch("pattern");
+  const watchedCaseSensitive = form.watch("isCaseSensitive");
+  const selectedCategory = workspace.categories.find(
+    (category) => category.id === watchedCategoryId,
+  );
 
   const handleSaveRule = form.handleSubmit(async (values) => {
     setIsSaving(true);
@@ -257,22 +336,34 @@ export function RulesScreen() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <PageHeader
         badge={<Badge variant="accent">Rules live</Badge>}
-        description="Create, test, and apply merchant rules locally. The saved-rule list stays primary, while edits and bulk application stay explicit and reviewable."
         eyebrow="Rules"
         title="Rules"
       />
 
-      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <SummaryMetric label="Saved rules" value={workspace.rules.length} />
+      <section className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-4">
         <SummaryMetric
+          detail="Priority order"
+          label="Saved rules"
+          value={workspace.rules.length}
+        />
+        <SummaryMetric
+          detail="Need category"
           label="Uncategorized"
           value={uncategorizedTransactions.length}
         />
-        <SummaryMetric label="Preview matches" value={previewRows.length} />
-        <SummaryMetric label="Highest priority" value={highestPriority} />
+        <SummaryMetric
+          detail="Ready to apply"
+          label="Preview matches"
+          value={previewRows.length}
+        />
+        <SummaryMetric
+          detail="Wins first"
+          label="Highest priority"
+          value={highestPriority}
+        />
       </section>
 
       {message ? (
@@ -287,24 +378,27 @@ export function RulesScreen() {
         </Notice>
       ) : null}
 
-      <section className="grid gap-4 xl:grid-cols-[1.18fr_0.82fr]">
-        <div className="grid gap-4">
-          <Card variant="elevated">
-            <CardHeader className="border-b border-line/60">
-              <CardTitle>Saved rules</CardTitle>
-              <CardDescription>
-                Higher priority wins. Keep patterns narrow unless you have a
-                stable merchant string to broaden safely.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pt-4">
-              {workspace.rules.length === 0 ? (
-                <div className="border-line/70 bg-panel-strong/25 text-muted rounded-xl border px-4 py-4 text-sm leading-6">
-                  No merchant rules saved yet.
+      <section className="grid gap-3.5 xl:grid-cols-[minmax(0,1.3fr)_minmax(21rem,0.92fr)]">
+        <div className="grid gap-3.5">
+          <WorkspaceSection
+            actions={<Badge variant="outline">{workspace.rules.length} rules</Badge>}
+            description="Higher priority wins first."
+            title="Saved rules"
+            variant="elevated"
+          >
+            {workspace.rules.length === 0 ? (
+              <EmptyState body="No merchant rules saved yet." />
+            ) : (
+              <div className="space-y-2">
+                <div className="text-muted hidden grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,0.95fr)_minmax(0,1fr)_auto] px-3.5 text-[0.62rem] font-semibold uppercase tracking-[0.16em] xl:grid">
+                  <span>Pattern</span>
+                  <span>Category</span>
+                  <span>Match</span>
+                  <span>Updated</span>
+                  <span className="text-right">Action</span>
                 </div>
-              ) : (
                 <List>
-                  {workspace.rules.map((rule) => {
+                  {rulesInPriorityOrder.map((rule) => {
                     const category = workspace.categories.find(
                       (item) => item.id === rule.categoryId,
                     );
@@ -312,28 +406,45 @@ export function RulesScreen() {
                     return (
                       <ListRow
                         aria-label={`Rule ${rule.pattern}`}
-                        className="items-center gap-3"
+                        className="flex-col gap-3 xl:grid xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,0.95fr)_minmax(0,1fr)_auto] xl:items-center"
                         key={rule.id}
                       >
-                        <div className="min-w-0 flex-1 space-y-1.5">
+                        <div className="min-w-0 space-y-1">
                           <div className="flex flex-wrap items-center gap-2">
                             <p className="text-ink truncate text-sm font-semibold tracking-tight">
                               {rule.pattern}
                             </p>
-                            <Badge variant="outline">
-                              {category?.name ?? "Missing category"}
-                            </Badge>
+                            {rule.isCaseSensitive ? (
+                              <Badge variant="outline">Case</Badge>
+                            ) : null}
                           </div>
-                          <p className="text-muted text-sm leading-5">
+                          <p className="text-muted text-[0.75rem] leading-4 xl:hidden">
                             {matchTypeLabels[rule.matchType]} • Priority {rule.priority}
-                            {rule.isCaseSensitive ? " • Case sensitive" : ""}
-                          </p>
-                          <p className="text-muted text-sm leading-5">
-                            Updated {formatDateTime(rule.updatedAt)}
                           </p>
                         </div>
 
-                        <div className="flex shrink-0 flex-wrap gap-2">
+                        <div className="min-w-0">
+                          <Badge variant="outline">
+                            {category?.name ?? "Missing category"}
+                          </Badge>
+                        </div>
+
+                        <div className="min-w-0">
+                          <p className="text-ink text-sm font-semibold">
+                            {matchTypeLabels[rule.matchType]}
+                          </p>
+                          <p className="text-muted text-[0.75rem] leading-4">
+                            Priority {rule.priority}
+                          </p>
+                        </div>
+
+                        <div className="min-w-0">
+                          <p className="text-muted text-sm leading-5">
+                            {formatDateTime(rule.updatedAt)}
+                          </p>
+                        </div>
+
+                        <div className="flex shrink-0 flex-wrap gap-2 xl:justify-end">
                           <Button
                             onClick={() => {
                               setEditingRuleId(rule.id);
@@ -357,103 +468,25 @@ export function RulesScreen() {
                     );
                   })}
                 </List>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="border-b border-line/60">
-              <CardTitle>Apply rules to uncategorized transactions</CardTitle>
-              <CardDescription>
-                Only uncategorized history is touched, and only after you review
-                the proposed matches below.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4 pt-4">
-              <div className="flex flex-wrap items-center gap-3">
-                <Badge variant="accent">{previewRows.length} matches ready</Badge>
-                <Badge variant="outline">
-                  {uncategorizedTransactions.length} uncategorized transactions
-                </Badge>
               </div>
-
-              {previewRows.length === 0 ? (
-                <div className="border-line/70 bg-panel-strong/25 text-muted rounded-xl border px-4 py-4 text-sm leading-6">
-                  No current rule matches are waiting to be applied.
-                </div>
-              ) : (
-                <>
-                  <div className="border-line/80 overflow-hidden rounded-xl border">
-                    <div className="max-h-[28rem] overflow-auto">
-                      <table className="min-w-full border-collapse text-left text-sm">
-                        <thead className="bg-panel-strong/55 text-muted">
-                          <tr>
-                            <th className="px-4 py-3 font-semibold">Date</th>
-                            <th className="px-4 py-3 font-semibold">Merchant</th>
-                            <th className="px-4 py-3 font-semibold">Amount</th>
-                            <th className="px-4 py-3 font-semibold">Rule</th>
-                            <th className="px-4 py-3 font-semibold">Category</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-line/70 bg-panel divide-y">
-                          {previewRows.map((row) => (
-                            <tr key={row.transactionId}>
-                              <td className="text-muted px-4 py-3 align-top">
-                                {row.date}
-                              </td>
-                              <td className="px-4 py-3 align-top">
-                                <div className="space-y-1">
-                                  <p className="text-ink font-medium">
-                                    {row.merchantRaw}
-                                  </p>
-                                  <p className="text-muted text-xs uppercase tracking-[0.18em]">
-                                    {row.merchantNormalized}
-                                  </p>
-                                </div>
-                              </td>
-                              <td className="text-muted px-4 py-3 align-top">
-                                {formatMinorUnits(row.amount)}
-                              </td>
-                              <td className="px-4 py-3 align-top">
-                                <Badge variant="outline">{row.ruleLabel}</Badge>
-                              </td>
-                              <td className="text-muted px-4 py-3 align-top">
-                                {row.categoryName}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-
-                  <Button
-                    disabled={isApplying}
-                    onClick={() => void handleApplyPreview()}
-                    variant="primary"
-                  >
-                    {isApplying
-                      ? "Applying matches..."
-                      : `Apply ${previewRows.length} matches`}
-                  </Button>
-                </>
-              )}
-            </CardContent>
-          </Card>
+            )}
+          </WorkspaceSection>
         </div>
 
-        <div className="grid gap-4 xl:sticky xl:top-6 xl:self-start">
-          <Card variant="muted">
-            <CardHeader className="border-b border-line/60">
-              <CardTitle>
-                {editingRuleId ? "Edit merchant rule" : "Create merchant rule"}
-              </CardTitle>
-              <CardDescription>
-                Start with exact corrections first. Widen a pattern only when
-                the merchant string is demonstrably stable.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pt-4">
+        <div className="grid gap-3.5 xl:sticky xl:top-[4.5rem] xl:self-start">
+          <WorkspaceSection
+            actions={
+              <Badge variant={editingRuleId ? "accent" : "outline"}>
+                {editingRuleId ? "Editing" : "New rule"}
+              </Badge>
+            }
+            description="Start narrow, then widen only when the merchant string is stable."
+            title={editingRuleId ? "Edit merchant rule" : "Create merchant rule"}
+            variant="muted"
+          >
+            {workspace.categories.length === 0 ? (
+              <InfoBlock body="No active categories available yet. Add categories in Budget Setup before creating rules." />
+            ) : (
               <form
                 className="space-y-4"
                 onSubmit={(event) => void handleSaveRule(event)}
@@ -471,13 +504,13 @@ export function RulesScreen() {
                     {...form.register("pattern")}
                   />
                   {form.formState.errors.pattern ? (
-                    <p className="text-warning text-sm">
+                    <p className="text-warning text-[0.75rem] leading-4">
                       {form.formState.errors.pattern.message}
                     </p>
                   ) : null}
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-3 md:grid-cols-2">
                   <div className="space-y-2">
                     <label
                       className="text-ink block text-sm font-semibold"
@@ -525,13 +558,13 @@ export function RulesScreen() {
                       })}
                     />
                     {form.formState.errors.priority ? (
-                      <p className="text-warning text-sm">
+                      <p className="text-warning text-[0.75rem] leading-4">
                         {form.formState.errors.priority.message}
                       </p>
                     ) : null}
                   </div>
 
-                  <label className="border-line/70 bg-panel flex items-center gap-3 rounded-xl border px-4 py-3 text-sm leading-6">
+                  <label className="border-line/70 bg-panel flex min-h-[var(--control-height)] items-center gap-3 rounded-[var(--radius-control)] border px-3 text-sm">
                     <input
                       className="accent-accent size-4"
                       type="checkbox"
@@ -552,24 +585,121 @@ export function RulesScreen() {
                   <Button
                     disabled={isSaving}
                     onClick={resetRuleForm}
+                    type="button"
                     variant="secondary"
                   >
-                    Reset form
+                    Reset
                   </Button>
                 </div>
               </form>
-            </CardContent>
-          </Card>
+            )}
+          </WorkspaceSection>
 
-          <Card>
-            <CardHeader className="border-b border-line/60">
-              <CardTitle>Rule tester</CardTitle>
-              <CardDescription>
-                Test a merchant string against the current saved rules before
-                applying anything to history.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4 pt-4">
+          <WorkspaceSection title="Workspace snapshot" variant="muted">
+            <List>
+              <SnapshotRow
+                label="Editor state"
+                secondary="Current panel"
+                value={editingRuleId ? "Editing" : "Create"}
+              />
+              <SnapshotRow
+                label="Match type"
+                secondary="Current form"
+                value={matchTypeLabels[watchedMatchType]}
+              />
+              <SnapshotRow
+                label="Category"
+                secondary="Current form"
+                value={selectedCategory?.name ?? "None"}
+              />
+              <SnapshotRow
+                label="Priority"
+                secondary="Current form"
+                value={String(watchedPriority)}
+              />
+              <SnapshotRow
+                label="Pattern"
+                secondary="Current form"
+                value={watchedPattern.trim() || "Empty"}
+              />
+              <SnapshotRow
+                label="Case sensitive"
+                secondary="Current form"
+                value={watchedCaseSensitive ? "Yes" : "No"}
+              />
+            </List>
+          </WorkspaceSection>
+
+          <WorkspaceSection
+            actions={
+              previewRows.length > 0 ? (
+                <Button
+                  disabled={isApplying}
+                  onClick={() => void handleApplyPreview()}
+                  size="sm"
+                  variant="primary"
+                >
+                  {isApplying ? "Applying..." : `Apply ${previewRows.length}`}
+                </Button>
+              ) : null
+            }
+            title="Apply preview"
+          >
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="accent">{previewRows.length} matches</Badge>
+                <Badge variant="outline">
+                  {uncategorizedTransactions.length} uncategorized
+                </Badge>
+              </div>
+
+              {previewRows.length === 0 ? (
+                <EmptyState body="No current rule matches are waiting to be applied." />
+              ) : (
+                <div className="space-y-2">
+                  <div className="border-line/80 overflow-hidden rounded-[var(--radius-panel)] border">
+                    <div className="max-h-[24rem] overflow-auto">
+                      <table className="min-w-full border-collapse text-left text-sm">
+                        <thead className="bg-panel-strong/45 text-muted">
+                          <tr>
+                            <th className="px-3.5 py-2.5 font-semibold">Merchant</th>
+                            <th className="px-3.5 py-2.5 font-semibold">Rule</th>
+                            <th className="px-3.5 py-2.5 font-semibold">Category</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-line/70 bg-panel divide-y">
+                          {previewRows.map((row) => (
+                            <tr key={row.transactionId}>
+                              <td className="px-3.5 py-3 align-top">
+                                <div className="space-y-0.5">
+                                  <p className="text-ink text-sm font-semibold">
+                                    {row.merchantRaw}
+                                  </p>
+                                  <p className="text-muted text-[0.75rem] leading-4">
+                                    {row.date} • {formatMinorUnits(row.amount)}
+                                  </p>
+                                </div>
+                              </td>
+                              <td className="px-3.5 py-3 align-top">
+                                <Badge variant="outline">{row.ruleLabel}</Badge>
+                              </td>
+                              <td className="text-muted px-3.5 py-3 align-top">
+                                {row.categoryName}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                  <InfoBlock body="Only uncategorized transactions are touched when you apply this preview." />
+                </div>
+              )}
+            </div>
+          </WorkspaceSection>
+
+          <WorkspaceSection title="Rule tester">
+            <div className="space-y-4">
               <div className="space-y-2">
                 <label
                   className="text-ink block text-sm font-semibold"
@@ -605,25 +735,22 @@ export function RulesScreen() {
                           {matchTypeLabels[matchedSampleRule.matchType]}{" "}
                           {matchedSampleRule.pattern}
                         </p>
-                        <p className="text-muted text-sm leading-5">
-                          Category: {matchedSampleCategory.name} • Priority{" "}
-                          {matchedSampleRule.priority}
+                        <p className="text-muted text-[0.8125rem] leading-5">
+                          Category: {matchedSampleCategory.name} • Priority {matchedSampleRule.priority}
                         </p>
                       </>
                     ) : (
-                      <p className="text-muted text-sm leading-5">
+                      <p className="text-muted text-[0.8125rem] leading-5">
                         No saved rule matches this merchant yet.
                       </p>
                     )}
                   </ListRow>
                 </List>
               ) : (
-                <div className="border-line/70 bg-panel-strong/25 text-muted rounded-xl border px-4 py-4 text-sm leading-6">
-                  Enter a merchant string to test it against the current rules.
-                </div>
+                <EmptyState body="Enter a merchant string to test it against the current saved rules." />
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </WorkspaceSection>
         </div>
       </section>
     </div>

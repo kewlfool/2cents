@@ -8,6 +8,7 @@ import { useAppBootstrap } from "@/components/providers/app-bootstrap-provider";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { List, ListRow } from "@/components/ui/list";
 import { Notice } from "@/components/ui/notice";
 import { useDashboardSummary } from "@/features/dashboard/hooks/use-dashboard-summary";
@@ -299,9 +300,7 @@ export function DashboardPreview() {
         >
             <div className="space-y-3">
               {attentionRows.length === 0 ? (
-                <div className="border-line/70 bg-panel-strong/25 text-muted rounded-[var(--radius-control)] border px-3.5 py-3 text-sm leading-5">
-                  No uncategorized activity or over-baseline expense categories.
-                </div>
+                <EmptyState body="Nothing needs review right now." />
               ) : (
                 <List>
                   {attentionRows.map((row) => (
@@ -340,9 +339,7 @@ export function DashboardPreview() {
             title="Recent imports"
           >
               {summary.recentImports.length === 0 ? (
-                <div className="border-line/70 bg-panel-strong/25 text-muted rounded-[var(--radius-control)] border px-3.5 py-3 text-sm leading-5">
-                  No statement imports have been saved yet.
-                </div>
+                <EmptyState body="No saved imports yet." />
               ) : (
                 <List>
                   {summary.recentImports.map((statementImport) => (
